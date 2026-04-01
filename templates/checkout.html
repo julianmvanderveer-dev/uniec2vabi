@@ -12,7 +12,7 @@
   <div class="h-px w-10 bg-slate-300"></div>
   <div class="flex items-center gap-2 font-semibold text-brynt-700">
     <span class="w-7 h-7 rounded-full bg-brynt-600 text-white flex items-center justify-center text-xs font-bold">2</span>
-    {% if is_free %}Controleer{% else %}Betaal{% endif %}
+    Controleer & betaal
   </div>
   <div class="h-px w-10 bg-slate-300"></div>
   <div class="flex items-center gap-2 text-slate-400">
@@ -30,7 +30,6 @@
       <p class="text-brynt-300 text-sm mt-0.5 truncate">{{ filename }}</p>
     </div>
 
-    <!-- Woningenlijst -->
     <div class="px-6 pt-4 pb-2">
       <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
         {{ count }} woning{{ '' if count == 1 else 'en' }} gevonden
@@ -44,52 +43,34 @@
           </svg>
           <div>
             <p class="text-sm font-medium text-slate-800">{{ w.naam }}</p>
-            {% if w.adres %}
-            <p class="text-xs text-slate-400">{{ w.adres }}</p>
-            {% endif %}
+            {% if w.adres %}<p class="text-xs text-slate-400">{{ w.adres }}</p>{% endif %}
           </div>
         </li>
         {% endfor %}
       </ul>
     </div>
 
-    <!-- Technische tellingen -->
     <div class="px-6 py-3 bg-slate-50 border-t border-slate-100 grid grid-cols-3 gap-3 text-center text-xs text-slate-500">
-      <div>
-        <p class="text-lg font-bold text-slate-700">{{ preview.n_vlakken }}</p>
-        <p>vlakken</p>
-      </div>
-      <div>
-        <p class="text-lg font-bold text-slate-700">{{ preview.n_ramen_deuren }}</p>
-        <p>ramen/deuren</p>
-      </div>
-      <div>
-        <p class="text-lg font-bold text-slate-700">{{ preview.n_koudebruggen }}</p>
-        <p>koudebruggen</p>
-      </div>
+      <div><p class="text-lg font-bold text-slate-700">{{ preview.n_vlakken }}</p><p>vlakken</p></div>
+      <div><p class="text-lg font-bold text-slate-700">{{ preview.n_ramen_deuren }}</p><p>ramen/deuren</p></div>
+      <div><p class="text-lg font-bold text-slate-700">{{ preview.n_koudebruggen }}</p><p>koudebruggen</p></div>
     </div>
 
-    <!-- Installaties -->
     <div class="px-6 py-3 border-t border-slate-100 flex gap-4 text-xs">
-      <span class="flex items-center gap-1 {{ 'text-brynt-600' if preview.heeft_ventilatie else 'text-slate-300' }}">
-        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-        Ventilatie
+      {% for label, ok in [('Ventilatie', preview.heeft_ventilatie), ('Verwarming', preview.heeft_verwarming), ('Tapwater', preview.heeft_tapwater)] %}
+      <span class="flex items-center gap-1 {{ 'text-brynt-600' if ok else 'text-slate-300' }}">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>
+        {{ label }}
       </span>
-      <span class="flex items-center gap-1 {{ 'text-brynt-600' if preview.heeft_verwarming else 'text-slate-300' }}">
-        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-        Verwarming
-      </span>
-      <span class="flex items-center gap-1 {{ 'text-brynt-600' if preview.heeft_tapwater else 'text-slate-300' }}">
-        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-        Tapwater
-      </span>
+      {% endfor %}
     </div>
   </div>
 
-  <!-- Prijs / gratis kaart -->
+  <!-- Betaal / gratis kaart -->
   <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
     {% if is_free %}
-    <!-- GRATIS -->
     <div class="px-6 py-5">
       <div class="flex items-center gap-3 mb-4">
         <span class="bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">GRATIS</span>
@@ -97,8 +78,7 @@
       </div>
       <form action="{{ url_for('convert_free', file_id=file_id) }}" method="post">
         <button type="submit"
-                class="w-full bg-green-600 hover:bg-green-700 active:bg-green-800 text-white
-                       font-semibold py-3.5 rounded-xl transition text-base shadow-sm">
+                class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3.5 rounded-xl transition text-base shadow-sm">
           ↓ Gratis .epa downloaden
         </button>
       </form>
@@ -108,27 +88,58 @@
     </div>
 
     {% else %}
-    <!-- BETAALD -->
-    <div class="px-6 py-5 space-y-3">
-      <div class="flex justify-between text-sm text-slate-600">
-        <span>Aantal woningen</span>
-        <span class="font-semibold text-slate-800">{{ count }}</span>
+    <!-- Klantgegevens voor factuur -->
+    <form action="{{ url_for('pay', file_id=file_id) }}" method="post">
+      <div class="px-6 pt-5 pb-3">
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Gegevens voor factuur</p>
+        <div class="space-y-3">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-slate-500 mb-1 block">Naam *</label>
+              <input type="text" name="naam" required placeholder="Jan de Vries"
+                     class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brynt-400">
+            </div>
+            <div>
+              <label class="text-xs text-slate-500 mb-1 block">Bedrijf</label>
+              <input type="text" name="bedrijf" placeholder="optioneel"
+                     class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brynt-400">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-slate-500 mb-1 block">E-mailadres *</label>
+              <input type="email" name="email" required placeholder="jan@voorbeeld.nl"
+                     class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brynt-400">
+            </div>
+            <div>
+              <label class="text-xs text-slate-500 mb-1 block">BTW-nummer</label>
+              <input type="text" name="btw_nr" placeholder="optioneel"
+                     class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brynt-400">
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="flex justify-between text-sm text-slate-600">
-        <span>Prijs per woning</span>
-        <span class="font-semibold text-slate-800">€ {{ '%.2f'|format(price_per) }}</span>
+
+      <!-- Prijsopgave -->
+      <div class="px-6 py-4 border-t border-slate-100 space-y-2">
+        <div class="flex justify-between text-sm text-slate-600">
+          <span>{{ count }} woningen × € {{ '%.2f'|format(price_per) }}</span>
+          <span>€ {{ '%.2f'|format(price_total) }}</span>
+        </div>
+        <div class="flex justify-between text-sm text-slate-500">
+          <span>BTW 21%</span>
+          <span>€ {{ '%.2f'|format(vat) }}</span>
+        </div>
+        <div class="flex justify-between font-bold text-slate-900 border-t border-slate-100 pt-2">
+          <span>Totaal (incl. BTW)</span>
+          <span class="text-brynt-700 text-lg">€ {{ '%.2f'|format(price_incl) }}</span>
+        </div>
       </div>
-      <div class="border-t border-slate-100 pt-3 flex justify-between font-bold text-slate-900">
-        <span>Totaal (excl. BTW)</span>
-        <span class="text-brynt-700 text-lg">€ {{ '%.2f'|format(price_total) }}</span>
-      </div>
-    </div>
-    <div class="px-6 pb-6">
-      <form action="{{ url_for('pay', file_id=file_id) }}" method="post">
+
+      <div class="px-6 pb-6">
         <button type="submit"
                 class="w-full flex items-center justify-center gap-3 bg-brynt-600 hover:bg-brynt-700
-                       active:bg-brynt-800 text-white font-semibold py-3.5 rounded-xl transition
-                       text-base shadow-sm">
+                       text-white font-semibold py-3.5 rounded-xl transition text-base shadow-sm">
           <svg class="w-6 h-6" viewBox="0 0 48 48" fill="none">
             <rect width="48" height="48" rx="6" fill="white"/>
             <path d="M8 8h14c9 0 18 6 18 16s-9 16-18 16H8V8z" fill="#CC0066"/>
@@ -137,17 +148,16 @@
           </svg>
           Betaal via iDEAL
         </button>
-      </form>
-      <p class="text-center text-xs text-slate-400 mt-3">
-        Veilig betalen via Mollie &nbsp;·&nbsp; Na betaling directe download
-      </p>
-    </div>
+        <p class="text-center text-xs text-slate-400 mt-3">
+          Veilig betalen via Mollie · Na betaling directe download + factuur
+        </p>
+      </div>
+    </form>
     {% endif %}
   </div>
 
 </div>
 
-<!-- Terug -->
 <div class="text-center mt-6">
   <a href="{{ url_for('index') }}" class="text-sm text-slate-400 hover:text-brynt-600 transition">
     ← Ander bestand uploaden

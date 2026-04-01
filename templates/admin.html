@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Factuuroverzicht — Brynt.nl{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-800">Factuuroverzicht</h1>
+  <p class="text-sm text-slate-500 mt-1">{{ facturen|length }} transactie(s) sinds laatste herstart</p>
+</div>
+
+{% if facturen %}
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-brynt-900 text-white text-xs">
+      <tr>
+        <th class="px-4 py-3 text-left">Factuurnr.</th>
+        <th class="px-4 py-3 text-left">Datum</th>
+        <th class="px-4 py-3 text-left">Klant</th>
+        <th class="px-4 py-3 text-left">E-mail</th>
+        <th class="px-4 py-3 text-center">Won.</th>
+        <th class="px-4 py-3 text-right">Bedrag</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for f in facturen %}
+      <tr class="hover:bg-slate-50">
+        <td class="px-4 py-3 font-mono text-xs text-slate-500">{{ f.nr }}</td>
+        <td class="px-4 py-3 text-slate-600">{{ f.datum }}</td>
+        <td class="px-4 py-3 font-medium text-slate-800">{{ f.klant }}</td>
+        <td class="px-4 py-3 text-slate-500">{{ f.email }}</td>
+        <td class="px-4 py-3 text-center text-slate-700">{{ f.woningen }}</td>
+        <td class="px-4 py-3 text-right font-semibold text-brynt-700">€ {{ '%.2f'|format(f.bedrag) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot class="bg-slate-50 border-t-2 border-slate-200">
+      <tr>
+        <td colspan="5" class="px-4 py-3 text-right font-bold text-slate-700">Totaal excl. BTW</td>
+        <td class="px-4 py-3 text-right font-bold text-brynt-700">
+          € {{ '%.2f'|format(facturen|sum(attribute='bedrag')) }}
+        </td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+<p class="text-xs text-slate-400 mt-4">
+  Let op: dit overzicht is in-memory en wordt gereset bij een serverherstart.
+  Mollie dashboard is de definitieve bron.
+</p>
+{% else %}
+<div class="bg-white rounded-2xl border border-slate-200 px-8 py-12 text-center text-slate-400">
+  Nog geen transacties geregistreerd.
+</div>
+{% endif %}
+{% endblock %}
