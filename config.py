@@ -6,3 +6,4 @@
 PRICE_PER_DWELLING = 10.00   # Euro per woning (excl. BTW)
 VAT_RATE           = 0.21    # BTW-tarief (21%)
 INCLUDE_VAT        = False   # True = prijs is incl. BTW, False = excl. BTW
+FREE_UP_TO         = 1       # Bestanden met max. dit aantal woningen zijn gratis

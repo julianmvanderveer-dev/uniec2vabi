@@ -3,8 +3,9 @@ app.py — Uniec2Vabi (Brynt.nl)
 
 Betaalstroom:
   GET  /                Upload pagina
-  POST /upload          Bestand inlezen → telling woningen → redirect /checkout/<id>
-  GET  /checkout/<id>   Prijsopgave + betaalknop
+  POST /upload          Bestand inlezen → preview + telling → redirect /checkout/<id>
+  GET  /checkout/<id>   Preview + prijsopgave (of gratis knop bij 1 woning)
+  POST /convert-free/<id>  Gratis conversie (≤ FREE_UP_TO woningen)
   POST /pay/<id>        Mollie betaling aanmaken → redirect iDEAL
   GET  /return          Terugkeer na betaling → download of wachtpagina
   GET  /wait/<id>       Wachtpagina met auto-refresh
@@ -23,7 +24,7 @@ from flask import (
 )
 from mollie.api.client import Client as MollieClient
 
-from uniec3_to_vabi import convert as uniec3_convert, Uniec3Data
+from uniec3_to_vabi import convert as uniec3_convert, Uniec3Data, _prop
 import config
 
 # ── App ───────────────────────────────────────────────────────────────────────
@@ -37,24 +38,63 @@ mollie = MollieClient()
 mollie.set_api_key(os.environ.get('MOLLIE_API_KEY', 'test_VERVANG_MET_JOUW_SLEUTEL'))
 
 # ── Tijdelijke opslag ─────────────────────────────────────────────────────────
-# Formaat: {file_id: {bytes, filename, count, created_at, payment_id}}
-# Bestanden worden na 2 uur automatisch verwijderd.
 
 _store: dict = {}
 _lock = threading.Lock()
 
 
 def _price(count: int) -> float:
-    """Bereken totaalprijs op basis van aantal woningen."""
     return round(count * config.PRICE_PER_DWELLING, 2)
 
 
+def _is_free(count: int) -> bool:
+    return count <= config.FREE_UP_TO
+
+
 def _cleanup() -> None:
-    cutoff = time.time() - 7200  # 2 uur
+    cutoff = time.time() - 7200
     with _lock:
         stale = [k for k, v in _store.items() if v['created_at'] < cutoff]
         for k in stale:
             del _store[k]
+
+
+def _build_preview(data: Uniec3Data) -> dict:
+    """Haal overzichtsdata op voor de preview op de checkout pagina."""
+    woningen = []
+    for unit in data.entities_by_type.get('UNIT', []):
+        naam  = _prop(unit, 'UNIT_OMSCHR') or '(naamloos)'
+        uid   = unit['NTAEntityDataId']
+
+        # Adres ophalen via AFMELDOBJECT → AFMELDLOCATIE
+        adres = ''
+        afm_obj = next((c for c in data.children_of.get(uid, [])
+                        if c.get('NTAEntityId') == 'AFMELDOBJECT'), None)
+        if afm_obj:
+            afm_loc = next((c for c in data.children_of.get(
+                            afm_obj['NTAEntityDataId'], [])
+                            if c.get('NTAEntityId') == 'AFMELDLOCATIE'), None)
+            if afm_loc:
+                straat    = _prop(afm_loc, 'AFMELDLOCATIE_STRAAT')
+                huisnr    = _prop(afm_loc, 'AFMELDLOCATIE_HUISNR')
+                postcode  = _prop(afm_loc, 'AFMELDLOCATIE_PC')
+                woonplaats = _prop(afm_loc, 'AFMELDLOCATIE_WOONPL')
+                parts = [p for p in [straat, huisnr, postcode, woonplaats] if p]
+                adres = ' '.join(parts)
+
+        woningen.append({'naam': naam, 'adres': adres})
+
+    return {
+        'woningen':          woningen,
+        'n_vlakken':         len(data.entities_by_type.get('BEGR', [])),
+        'n_ramen_deuren':    len(data.entities_by_type.get('CONSTRT', [])),
+        'n_koudebruggen':    len(data.entities_by_type.get('CONSTRL', [])),
+        'heeft_ventilatie':  bool(data.entities_by_type.get('VENTSYS', [])),
+        'heeft_verwarming':  bool(data.entities_by_type.get('VERW-OPWEK', [])
+                                  or data.entities_by_type.get('VERW-INST', [])),
+        'heeft_tapwater':    bool(data.entities_by_type.get('TAPW-OPWEK', [])
+                                  or data.entities_by_type.get('TAPW-INST', [])),
+    }
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -80,8 +120,9 @@ def upload():
     raw = f.read()
 
     try:
-        data  = Uniec3Data(raw)
-        count = len(data.entities_by_type.get('UNIT', []))
+        data    = Uniec3Data(raw)
+        count   = len(data.entities_by_type.get('UNIT', []))
+        preview = _build_preview(data)
     except Exception as e:
         flash(f'Fout bij inlezen bestand: {e}', 'error')
         return redirect(url_for('index'))
@@ -96,6 +137,7 @@ def upload():
             'bytes':      raw,
             'filename':   f.filename,
             'count':      count,
+            'preview':    preview,
             'created_at': time.time(),
             'payment_id': None,
         }
@@ -112,16 +154,32 @@ def checkout(file_id):
         return redirect(url_for('index'))
 
     count = entry['count']
-    price = _price(count)
-
     return render_template(
         'checkout.html',
         file_id=file_id,
         filename=entry['filename'],
         count=count,
+        preview=entry['preview'],
         price_per=config.PRICE_PER_DWELLING,
-        price_total=price,
+        price_total=_price(count),
+        is_free=_is_free(count),
     )
+
+
+@app.route('/convert-free/<file_id>', methods=['POST'])
+def convert_free(file_id):
+    """Gratis conversie voor bestanden met ≤ FREE_UP_TO woningen."""
+    with _lock:
+        entry = _store.get(file_id)
+    if not entry:
+        flash('Sessie verlopen. Upload het bestand opnieuw.', 'error')
+        return redirect(url_for('index'))
+
+    if not _is_free(entry['count']):
+        flash('Dit bestand valt niet binnen de gratis limiet.', 'error')
+        return redirect(url_for('checkout', file_id=file_id))
+
+    return _serve_conversion(file_id, entry)
 
 
 @app.route('/pay/<file_id>', methods=['POST'])
@@ -182,21 +240,18 @@ def payment_return():
     if status in ('pending', 'open', 'authorized'):
         return redirect(url_for('wait', file_id=file_id))
 
-    # failed / canceled / expired
     flash('Betaling niet geslaagd. Probeer het opnieuw.', 'error')
     return redirect(url_for('checkout', file_id=file_id))
 
 
 @app.route('/wait/<file_id>')
 def wait(file_id):
-    """Wachtpagina — pollt elke 4 seconden via meta-refresh."""
     with _lock:
         entry = _store.get(file_id)
     if not entry:
         flash('Sessie verlopen.', 'error')
         return redirect(url_for('index'))
 
-    # Controleer status opnieuw
     try:
         payment = mollie.payments.get(entry['payment_id'])
         if payment.status == 'paid':
@@ -209,11 +264,10 @@ def wait(file_id):
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    """Mollie stuurt hier een POST zodra de betaalstatus wijzigt."""
     payment_id = request.form.get('id', '')
     if payment_id:
         try:
-            mollie.payments.get(payment_id)  # verifieer bij Mollie
+            mollie.payments.get(payment_id)
         except Exception:
             pass
     return '', 200
@@ -222,7 +276,6 @@ def webhook():
 # ── Hulpfunctie ───────────────────────────────────────────────────────────────
 
 def _serve_conversion(file_id: str, entry: dict):
-    """Converteer het bestand en stuur het als download."""
     try:
         project_naam = os.path.splitext(entry['filename'])[0]
         epa_bytes    = uniec3_convert(entry['bytes'], project_naam=project_naam)
@@ -231,7 +284,7 @@ def _serve_conversion(file_id: str, entry: dict):
         return redirect(url_for('index'))
 
     with _lock:
-        _store.pop(file_id, None)  # ruim op na download
+        _store.pop(file_id, None)
 
     stem = os.path.splitext(entry['filename'])[0][:60]
     buf  = io.BytesIO(epa_bytes)

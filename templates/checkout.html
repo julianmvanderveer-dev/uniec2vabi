@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Betalen — Uniec2Vabi{% endblock %}
+{% block title %}{% if is_free %}Gratis converteren{% else %}Betalen{% endif %} — Uniec2Vabi{% endblock %}
 
 {% block content %}
 
@@ -12,7 +12,7 @@
   <div class="h-px w-10 bg-slate-300"></div>
   <div class="flex items-center gap-2 font-semibold text-brynt-700">
     <span class="w-7 h-7 rounded-full bg-brynt-600 text-white flex items-center justify-center text-xs font-bold">2</span>
-    Betaal
+    {% if is_free %}Controleer{% else %}Betaal{% endif %}
   </div>
   <div class="h-px w-10 bg-slate-300"></div>
   <div class="flex items-center gap-2 text-slate-400">
@@ -21,53 +21,130 @@
   </div>
 </div>
 
-<!-- Prijskaart -->
-<div class="max-w-md mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+<div class="max-w-lg mx-auto space-y-4">
 
-  <!-- Header -->
-  <div class="bg-brynt-900 text-white px-6 py-5">
-    <h1 class="text-xl font-bold">Prijsopgave</h1>
-    <p class="text-brynt-300 text-sm mt-1 truncate">{{ filename }}</p>
+  <!-- Preview kaart -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="bg-brynt-900 text-white px-6 py-4">
+      <h1 class="text-lg font-bold">Bestandsinhoud</h1>
+      <p class="text-brynt-300 text-sm mt-0.5 truncate">{{ filename }}</p>
+    </div>
+
+    <!-- Woningenlijst -->
+    <div class="px-6 pt-4 pb-2">
+      <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+        {{ count }} woning{{ '' if count == 1 else 'en' }} gevonden
+      </p>
+      <ul class="divide-y divide-slate-100">
+        {% for w in preview.woningen %}
+        <li class="py-2 flex items-start gap-3">
+          <svg class="w-4 h-4 text-brynt-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/>
+          </svg>
+          <div>
+            <p class="text-sm font-medium text-slate-800">{{ w.naam }}</p>
+            {% if w.adres %}
+            <p class="text-xs text-slate-400">{{ w.adres }}</p>
+            {% endif %}
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <!-- Technische tellingen -->
+    <div class="px-6 py-3 bg-slate-50 border-t border-slate-100 grid grid-cols-3 gap-3 text-center text-xs text-slate-500">
+      <div>
+        <p class="text-lg font-bold text-slate-700">{{ preview.n_vlakken }}</p>
+        <p>vlakken</p>
+      </div>
+      <div>
+        <p class="text-lg font-bold text-slate-700">{{ preview.n_ramen_deuren }}</p>
+        <p>ramen/deuren</p>
+      </div>
+      <div>
+        <p class="text-lg font-bold text-slate-700">{{ preview.n_koudebruggen }}</p>
+        <p>koudebruggen</p>
+      </div>
+    </div>
+
+    <!-- Installaties -->
+    <div class="px-6 py-3 border-t border-slate-100 flex gap-4 text-xs">
+      <span class="flex items-center gap-1 {{ 'text-brynt-600' if preview.heeft_ventilatie else 'text-slate-300' }}">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+        Ventilatie
+      </span>
+      <span class="flex items-center gap-1 {{ 'text-brynt-600' if preview.heeft_verwarming else 'text-slate-300' }}">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+        Verwarming
+      </span>
+      <span class="flex items-center gap-1 {{ 'text-brynt-600' if preview.heeft_tapwater else 'text-slate-300' }}">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+        Tapwater
+      </span>
+    </div>
   </div>
 
-  <!-- Uitsplitsing -->
-  <div class="px-6 py-5 space-y-3">
-    <div class="flex justify-between text-sm text-slate-600">
-      <span>Aantal woningen</span>
-      <span class="font-semibold text-slate-800">{{ count }}</span>
+  <!-- Prijs / gratis kaart -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+    {% if is_free %}
+    <!-- GRATIS -->
+    <div class="px-6 py-5">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">GRATIS</span>
+        <p class="text-sm text-slate-600">1 woning — geen betaling nodig</p>
+      </div>
+      <form action="{{ url_for('convert_free', file_id=file_id) }}" method="post">
+        <button type="submit"
+                class="w-full bg-green-600 hover:bg-green-700 active:bg-green-800 text-white
+                       font-semibold py-3.5 rounded-xl transition text-base shadow-sm">
+          ↓ Gratis .epa downloaden
+        </button>
+      </form>
+      <p class="text-center text-xs text-slate-400 mt-3">
+        Bestanden met meerdere woningen zijn betaald (€ {{ '%.2f'|format(price_per) }} p/st)
+      </p>
     </div>
-    <div class="flex justify-between text-sm text-slate-600">
-      <span>Prijs per woning</span>
-      <span class="font-semibold text-slate-800">€ {{ '%.2f'|format(price_per) }}</span>
+
+    {% else %}
+    <!-- BETAALD -->
+    <div class="px-6 py-5 space-y-3">
+      <div class="flex justify-between text-sm text-slate-600">
+        <span>Aantal woningen</span>
+        <span class="font-semibold text-slate-800">{{ count }}</span>
+      </div>
+      <div class="flex justify-between text-sm text-slate-600">
+        <span>Prijs per woning</span>
+        <span class="font-semibold text-slate-800">€ {{ '%.2f'|format(price_per) }}</span>
+      </div>
+      <div class="border-t border-slate-100 pt-3 flex justify-between font-bold text-slate-900">
+        <span>Totaal (excl. BTW)</span>
+        <span class="text-brynt-700 text-lg">€ {{ '%.2f'|format(price_total) }}</span>
+      </div>
     </div>
-    <div class="border-t border-slate-100 pt-3 flex justify-between text-base font-bold text-slate-900">
-      <span>Totaal (excl. BTW)</span>
-      <span class="text-brynt-700 text-lg">€ {{ '%.2f'|format(price_total) }}</span>
+    <div class="px-6 pb-6">
+      <form action="{{ url_for('pay', file_id=file_id) }}" method="post">
+        <button type="submit"
+                class="w-full flex items-center justify-center gap-3 bg-brynt-600 hover:bg-brynt-700
+                       active:bg-brynt-800 text-white font-semibold py-3.5 rounded-xl transition
+                       text-base shadow-sm">
+          <svg class="w-6 h-6" viewBox="0 0 48 48" fill="none">
+            <rect width="48" height="48" rx="6" fill="white"/>
+            <path d="M8 8h14c9 0 18 6 18 16s-9 16-18 16H8V8z" fill="#CC0066"/>
+            <rect x="20" y="14" width="3" height="20" fill="white"/>
+            <circle cx="26" cy="18" r="2.5" fill="white"/>
+          </svg>
+          Betaal via iDEAL
+        </button>
+      </form>
+      <p class="text-center text-xs text-slate-400 mt-3">
+        Veilig betalen via Mollie &nbsp;·&nbsp; Na betaling directe download
+      </p>
     </div>
+    {% endif %}
   </div>
 
-  <!-- Betaalknop -->
-  <div class="px-6 pb-6">
-    <form action="{{ url_for('pay', file_id=file_id) }}" method="post">
-      <button type="submit"
-              class="w-full flex items-center justify-center gap-3 bg-brynt-600 hover:bg-brynt-700
-                     active:bg-brynt-800 text-white font-semibold py-3.5 rounded-xl transition
-                     text-base shadow-sm">
-        <!-- iDEAL logo (SVG) -->
-        <svg class="w-6 h-6" viewBox="0 0 48 48" fill="none">
-          <rect width="48" height="48" rx="6" fill="white"/>
-          <path d="M8 8h14c9 0 18 6 18 16s-9 16-18 16H8V8z" fill="#CC0066"/>
-          <rect x="20" y="14" width="3" height="20" fill="white"/>
-          <circle cx="26" cy="18" r="2.5" fill="white"/>
-        </svg>
-        Betaal via iDEAL
-      </button>
-    </form>
-
-    <p class="text-center text-xs text-slate-400 mt-3">
-      Veilig betalen via Mollie &nbsp;·&nbsp; Na betaling directe download
-    </p>
-  </div>
 </div>
 
 <!-- Terug -->
