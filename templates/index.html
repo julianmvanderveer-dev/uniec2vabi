@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Uniec2Vabi — Converteer .uniec3 naar VABI{% endblock %}
+
+{% block content %}
+
+<!-- Stappenindicator -->
+<div class="flex items-center justify-center gap-3 mb-10 text-sm">
+  <div class="flex items-center gap-2 font-semibold text-brynt-700">
+    <span class="w-7 h-7 rounded-full bg-brynt-600 text-white flex items-center justify-center text-xs font-bold">1</span>
+    Upload
+  </div>
+  <div class="h-px w-10 bg-slate-300"></div>
+  <div class="flex items-center gap-2 text-slate-400">
+    <span class="w-7 h-7 rounded-full border-2 border-slate-300 flex items-center justify-center text-xs font-bold">2</span>
+    Betaal
+  </div>
+  <div class="h-px w-10 bg-slate-300"></div>
+  <div class="flex items-center gap-2 text-slate-400">
+    <span class="w-7 h-7 rounded-full border-2 border-slate-300 flex items-center justify-center text-xs font-bold">3</span>
+    Download
+  </div>
+</div>
+
+<!-- Hero -->
+<div class="text-center mb-8">
+  <h1 class="text-3xl font-bold text-slate-800 mb-2">Uniec3 → VABI EPA</h1>
+  <p class="text-slate-500 max-w-md mx-auto">
+    Upload een <code class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">.uniec3</code> bestand.
+    Na betaling ontvang je direct een
+    <code class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">.epa</code> bestand
+    dat je rechtstreeks in VABI kunt openen.
+  </p>
+</div>
+
+<!-- Upload zone -->
+<form id="upload-form" action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data">
+  <input id="file-input" type="file" name="file" accept=".uniec3" class="hidden">
+
+  <div id="drop-zone"
+       class="border-2 border-dashed border-brynt-300 rounded-2xl bg-white hover:bg-brynt-50
+              transition cursor-pointer p-14 text-center flex flex-col items-center gap-4 group">
+
+    <svg id="zone-icon" class="w-14 h-14 text-brynt-300 group-hover:text-brynt-500 transition"
+         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+    </svg>
+
+    <svg id="zone-spinner" class="hidden animate-spin w-10 h-10 text-brynt-500" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+    </svg>
+
+    <div>
+      <p id="zone-label" class="text-base font-medium text-slate-700">Sleep je .uniec3 bestand hier</p>
+      <p class="text-sm text-slate-400 mt-1">of klik om te bladeren</p>
+    </div>
+  </div>
+</form>
+
+<!-- Disclaimer -->
+<div class="mt-6 bg-amber-50 border border-amber-200 rounded-xl px-6 py-4 text-sm text-amber-800">
+  <div class="flex items-center gap-2 font-semibold mb-2">
+    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+    </svg>
+    Disclaimer
+  </div>
+  <ul class="space-y-1 text-amber-700 list-disc list-inside">
+    <li>Brynt.nl is niet verantwoordelijk voor de juistheid van de omgezette informatie. Controleer het resultaat altijd zelf.</li>
+    <li>Het omzetten van installaties is nog niet geoptimaliseerd. De conversie betreft op dit moment alleen de geometrie.</li>
+  </ul>
+</div>
+
+<!-- Prijsinfo -->
+<div class="mt-6 bg-brynt-50 border border-brynt-100 rounded-xl px-6 py-4 text-sm text-brynt-800">
+  <div class="flex items-center gap-2 font-semibold mb-2">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    Hoe werkt het?
+  </div>
+  <ul class="space-y-1 text-brynt-700 list-disc list-inside">
+    <li>Upload je .uniec3 bestand — wij tellen de woningen automatisch</li>
+    <li>Prijs: <strong>€ 10,00 per woning</strong> (excl. BTW)</li>
+    <li>Betaal veilig via iDEAL</li>
+    <li>Direct daarna download je het kant-en-klare .epa bestand</li>
+  </ul>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const zone    = document.getElementById('drop-zone');
+  const input   = document.getElementById('file-input');
+  const form    = document.getElementById('upload-form');
+  const label   = document.getElementById('zone-label');
+  const icon    = document.getElementById('zone-icon');
+  const spinner = document.getElementById('zone-spinner');
+
+  zone.addEventListener('click', () => input.click());
+
+  input.addEventListener('change', () => {
+    if (input.files[0]) submit(input.files[0]);
+  });
+
+  zone.addEventListener('dragenter', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', ()  => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) submit(e.dataTransfer.files[0]);
+  });
+
+  function submit(file) {
+    if (!file.name.toLowerCase().endsWith('.uniec3')) {
+      alert('Selecteer een geldig .uniec3 bestand.');
+      return;
+    }
+    label.textContent = `${file.name} — bezig met verwerken...`;
+    icon.classList.add('hidden');
+    spinner.classList.remove('hidden');
+    zone.style.pointerEvents = 'none';
+
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+    form.submit();
+  }
+})();
+</script>
+{% endblock %}

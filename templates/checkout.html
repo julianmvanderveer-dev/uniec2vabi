@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Betalen — Uniec2Vabi{% endblock %}
+
+{% block content %}
+
+<!-- Stappenindicator -->
+<div class="flex items-center justify-center gap-3 mb-10 text-sm">
+  <div class="flex items-center gap-2 text-slate-400">
+    <span class="w-7 h-7 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-xs font-bold">✓</span>
+    Upload
+  </div>
+  <div class="h-px w-10 bg-slate-300"></div>
+  <div class="flex items-center gap-2 font-semibold text-brynt-700">
+    <span class="w-7 h-7 rounded-full bg-brynt-600 text-white flex items-center justify-center text-xs font-bold">2</span>
+    Betaal
+  </div>
+  <div class="h-px w-10 bg-slate-300"></div>
+  <div class="flex items-center gap-2 text-slate-400">
+    <span class="w-7 h-7 rounded-full border-2 border-slate-300 flex items-center justify-center text-xs font-bold">3</span>
+    Download
+  </div>
+</div>
+
+<!-- Prijskaart -->
+<div class="max-w-md mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+
+  <!-- Header -->
+  <div class="bg-brynt-900 text-white px-6 py-5">
+    <h1 class="text-xl font-bold">Prijsopgave</h1>
+    <p class="text-brynt-300 text-sm mt-1 truncate">{{ filename }}</p>
+  </div>
+
+  <!-- Uitsplitsing -->
+  <div class="px-6 py-5 space-y-3">
+    <div class="flex justify-between text-sm text-slate-600">
+      <span>Aantal woningen</span>
+      <span class="font-semibold text-slate-800">{{ count }}</span>
+    </div>
+    <div class="flex justify-between text-sm text-slate-600">
+      <span>Prijs per woning</span>
+      <span class="font-semibold text-slate-800">€ {{ '%.2f'|format(price_per) }}</span>
+    </div>
+    <div class="border-t border-slate-100 pt-3 flex justify-between text-base font-bold text-slate-900">
+      <span>Totaal (excl. BTW)</span>
+      <span class="text-brynt-700 text-lg">€ {{ '%.2f'|format(price_total) }}</span>
+    </div>
+  </div>
+
+  <!-- Betaalknop -->
+  <div class="px-6 pb-6">
+    <form action="{{ url_for('pay', file_id=file_id) }}" method="post">
+      <button type="submit"
+              class="w-full flex items-center justify-center gap-3 bg-brynt-600 hover:bg-brynt-700
+                     active:bg-brynt-800 text-white font-semibold py-3.5 rounded-xl transition
+                     text-base shadow-sm">
+        <!-- iDEAL logo (SVG) -->
+        <svg class="w-6 h-6" viewBox="0 0 48 48" fill="none">
+          <rect width="48" height="48" rx="6" fill="white"/>
+          <path d="M8 8h14c9 0 18 6 18 16s-9 16-18 16H8V8z" fill="#CC0066"/>
+          <rect x="20" y="14" width="3" height="20" fill="white"/>
+          <circle cx="26" cy="18" r="2.5" fill="white"/>
+        </svg>
+        Betaal via iDEAL
+      </button>
+    </form>
+
+    <p class="text-center text-xs text-slate-400 mt-3">
+      Veilig betalen via Mollie &nbsp;·&nbsp; Na betaling directe download
+    </p>
+  </div>
+</div>
+
+<!-- Terug -->
+<div class="text-center mt-6">
+  <a href="{{ url_for('index') }}" class="text-sm text-slate-400 hover:text-brynt-600 transition">
+    ← Ander bestand uploaden
+  </a>
+</div>
+
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Betaling verwerken… — Uniec2Vabi{% endblock %}
+
+{% block content %}
+<meta http-equiv="refresh" content="4;url={{ url_for('wait', file_id=file_id) }}">
+
+<div class="flex flex-col items-center justify-center min-h-[50vh] gap-6 text-center">
+
+  <!-- Spinner -->
+  <svg class="animate-spin w-14 h-14 text-brynt-500" fill="none" viewBox="0 0 24 24">
+    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+    <path class="opacity-75" fill="currentColor"
+      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+  </svg>
+
+  <div>
+    <h1 class="text-2xl font-bold text-slate-800">Betaling wordt verwerkt…</h1>
+    <p class="text-slate-500 mt-2">
+      Dit duurt normaal maar een paar seconden.<br>
+      De pagina ververst automatisch.
+    </p>
+  </div>
+
+  <a href="{{ url_for('wait', file_id=file_id) }}"
+     class="text-sm text-brynt-600 hover:underline">
+    Klik hier als de pagina niet automatisch ververst
+  </a>
+
+</div>
+{% endblock %}
