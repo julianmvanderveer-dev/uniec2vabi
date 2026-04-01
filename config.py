@@ -18,5 +18,5 @@ BEDRIJF_BTW         = 'NL861924824B01'
 BEDRIJF_IBAN        = 'NL23 INGB 0005 9885 80'
 BEDRIJF_EMAIL       = 'info@borgch.nl'
 
-# Admin (factuuroverzicht)
-ADMIN_KEY = 'Oranjelaan3G!'  # wachtwoord voor /admin
+# Admin (factuuroverzicht) — stel in als Render environment variable ADMIN_KEY
+ADMIN_KEY = ''
