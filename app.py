@@ -427,11 +427,26 @@ def wait(file_id):
 @app.route('/webhook', methods=['POST'])
 def webhook():
     payment_id = request.form.get('id', '')
-    if payment_id:
-        try:
-            mollie.payments.get(payment_id)
-        except Exception:
-            pass
+    if not payment_id:
+        return '', 200
+    try:
+        payment = mollie.payments.get(payment_id)
+        if payment.status != 'paid':
+            return '', 200
+        # Zoek file_id op via payment_id
+        with _lock:
+            file_id = next(
+                (k for k, v in _store.items() if v.get('payment_id') == payment_id),
+                None,
+            )
+        if file_id is None:
+            return '', 200
+        with _lock:
+            entry = _store.get(file_id)
+        if entry and not entry.get('epa_bytes'):
+            _run_conversion(file_id, entry)
+    except Exception:
+        pass
     return '', 200
 
 
@@ -490,31 +505,40 @@ def admin():
 
 # ── Interne hulpfuncties ──────────────────────────────────────────────────────
 
-def _do_conversion_and_redirect(file_id: str, entry: dict):
-    """Converteer, sla op in store, log factuur, redirect naar successpagina."""
+def _run_conversion(file_id: str, entry: dict) -> bool:
+    """Voer de conversie uit en sla het resultaat op in _store.
+    Geeft True terug bij succes, False bij fout. Geen redirect."""
     try:
         project_naam = os.path.splitext(entry['filename'])[0]
         epa_bytes    = uniec3_convert(entry['bytes'], project_naam=project_naam)
-    except Exception as e:
-        flash(f'Fout bij conversie: {e}', 'error')
-        return redirect(url_for('index'))
+    except Exception:
+        return False
 
     with _lock:
-        if file_id in _store:
-            _store[file_id]['epa_bytes'] = epa_bytes
-            # Log factuur voor admin (alleen bij betaalde conversies)
-            if not _is_free(entry['count']):
-                _invoices.append({
-                    'nr':         _store[file_id].get('invoice_nr', ''),
-                    'datum':      datetime.now().strftime('%d-%m-%Y %H:%M'),
-                    'klant':      entry.get('customer', {}).get('naam', ''),
-                    'email':      entry.get('customer', {}).get('email', ''),
-                    'woningen':   entry['count'],
-                    'bedrag':     _price(entry['count']),
-                    'payment_id': entry.get('payment_id', ''),
-                    'bestand':    entry['filename'],
-                })
+        if file_id not in _store:
+            return False
+        _store[file_id]['epa_bytes'] = epa_bytes
+        if not _is_free(entry['count']):
+            _invoices.append({
+                'nr':         _store[file_id].get('invoice_nr', ''),
+                'datum':      datetime.now().strftime('%d-%m-%Y %H:%M'),
+                'klant':      entry.get('customer', {}).get('naam', ''),
+                'email':      entry.get('customer', {}).get('email', ''),
+                'woningen':   entry['count'],
+                'bedrag':     _price(entry['count']),
+                'payment_id': entry.get('payment_id', ''),
+                'bestand':    entry['filename'],
+            })
+    return True
 
+
+def _do_conversion_and_redirect(file_id: str, entry: dict):
+    """Converteer en redirect naar successpagina (voor browser-flow)."""
+    if not entry.get('epa_bytes'):
+        ok = _run_conversion(file_id, entry)
+        if not ok:
+            flash('Fout bij conversie. Probeer opnieuw.', 'error')
+            return redirect(url_for('index'))
     return redirect(url_for('success', file_id=file_id))
 
 
