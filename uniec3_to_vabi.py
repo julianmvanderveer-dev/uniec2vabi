@@ -1081,8 +1081,8 @@ def _xml_constructie(parent: Element, c: dict, index: int):
     _xml_text(co, 'DeurMetRaamGlas65Procent', '0')
     _xml_text(co, 'RietenDak', '0')
     is_transp = c.get('type') in ('2', '3')  # raam of deur
-    # Invoer=2: directe Rc/U-invoer → VABI toont invulveld bij klikken (geen lageneditor)
-    _xml_text(co, 'Invoer', '2')
+    # Invoer=4, Bron=2: overeenkomstig echt VABI-importformaat (W25.004 referentie)
+    _xml_text(co, 'Invoer', '4')
     _xml_text(co, 'KwaliteitsverklaringInvoermethode', '0')
     _xml_text(co, 'GMinimaleEisenBbl', '0.00')
     _xml_text(co, 'OppervlaktePerConstructie', '0')
@@ -1111,8 +1111,7 @@ def _xml_constructie(parent: Element, c: dict, index: int):
     _xml_text(co, 'RcInvoer', _fmt(c.get('rc')))
     _xml_text(co, 'UInvoer', _fmt(c.get('u')))
     _xml_text(co, 'GInvoer', _fmt(c.get('g')))
-    # IsolatieAanwezig: 1 = aanwezig (opaque/Rc), -1 = n.v.t. (transparant)
-    _xml_text(co, 'IsolatieAanwezig', '1' if not is_transp else '-1')
+    _xml_text(co, 'IsolatieAanwezig', '-1')
     _xml_text(co, 'Rietdikte', '-1')
     _xml_text(co, 'IsolatiedikteOnbekend', '0')
     _xml_text(co, 'Isolatiedikte', '0')
@@ -1120,8 +1119,8 @@ def _xml_constructie(parent: Element, c: dict, index: int):
     _xml_text(co, 'SpouwAanwezig', '0')
     _xml_text(co, 'Kozijn', '-1')
     _xml_text(co, 'Glas', '-1')
-    _xml_text(co, 'ProductinformatieGWaarde', '1' if (is_transp and c.get('g')) else '0')
-    _xml_text(co, 'Bron', '1')            # 1 = handmatig ingevoerd
+    _xml_text(co, 'ProductinformatieGWaarde', '0')
+    _xml_text(co, 'Bron', '2')            # 2 = overgenomen (geïmporteerd)
     _xml_empty(co, 'Opmerkingen')
 
 
