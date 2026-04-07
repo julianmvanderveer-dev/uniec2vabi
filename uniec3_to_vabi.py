@@ -85,13 +85,13 @@ VERW_TYPE_MAP = {
 # VERW-OPWEK_FABR_* (werkelijk formaat in .uniec3) → VABI 11.x TypeOpwekker waarden
 VERW_FABR_MAP = {
     'VERW-OPWEK_FABR_A': '1',   # HR condenserende ketel gas
-    'VERW-OPWEK_FABR_B': '1',   # HR ketel (alternatief)
-    'VERW-OPWEK_FABR_C': '2',   # Niet-condenserende ketel
+    'VERW-OPWEK_FABR_B': '2',   # Niet-condenserende ketel gas
+    'VERW-OPWEK_FABR_C': '9',   # Lucht-water warmtepomp elektrisch
     'VERW-OPWEK_FABR_D': '10',  # Stadsverwarming
-    'VERW-OPWEK_FABR_E': '9',   # Warmtepomp elektrisch
-    'VERW-OPWEK_FABR_F': '9',   # Warmtepomp gas
+    'VERW-OPWEK_FABR_E': '9',   # Grond/water-water warmtepomp elektrisch
+    'VERW-OPWEK_FABR_F': '9',   # Warmtepomp gas-absorptie
     'VERW-OPWEK_FABR_G': '3',   # WKK
-    'VERW-OPWEK_FABR_H': '1',   # Overig HR
+    'VERW-OPWEK_FABR_H': '1',   # Overig HR ketel
 }
 
 # TAPW-OPWEK_TYPE_* (oud formaat) → VABI 11.x TypeToestel waarden
@@ -337,12 +337,20 @@ def _resolve_tapw_type(opwek: dict) -> str:
     """Lees het tapwateropwekker-type uit een TAPW-OPWEK entiteit.
 
     Probeert achtereenvolgens TAPW-OPWEK_FABR (nieuw formaat) en
-    TAPW-OPWEK_TYPE (oud formaat). Valt terug op TYPE als FABR niet in de map staat.
+    TAPW-OPWEK_TYPE (oud formaat). FABR_L (gemeenschappelijk/overig) wordt
+    bepaald op basis van COP: >1.0 = warmtepompboiler (4), anders elektrisch (3).
     Geeft '1' (combi-ketel) als ultiem default.
     """
     fabr = _prop(opwek, 'TAPW-OPWEK_FABR')
-    if fabr and fabr in TAPW_FABR_MAP:
-        return TAPW_FABR_MAP[fabr]
+    if fabr:
+        if fabr in TAPW_FABR_MAP:
+            return TAPW_FABR_MAP[fabr]
+        # FABR_L en andere onbekende codes: gebruik COP als indicator
+        cop = _num(opwek, 'TAPW-OPWEK_COP_NON') or _num(opwek, 'TAPW-OPWEK_REND_NON')
+        if cop and cop > 1.0:
+            return '4'  # warmtepompboiler
+        if cop and cop <= 1.0:
+            return '3'  # elektrische boiler
     type_val = _prop(opwek, 'TAPW-OPWEK_TYPE')
     if type_val and type_val in TAPW_TYPE_MAP:
         return TAPW_TYPE_MAP[type_val]
