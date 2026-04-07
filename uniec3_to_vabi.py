@@ -45,6 +45,14 @@ _DEFAULT_ORI = {
     '1': '0', '6': '0', '7': '0',
 }
 
+# Compass-richting → VABI locatie (voor/achter/links/rechts gevel)
+_GEVEL_COMPASS_TO_LOCATIE = {
+    'Z':  '2', 'ZW': '2', 'ZO': '2',
+    'N':  '3', 'NW': '3', 'NO': '3',
+    'W':  '4',
+    'O':  '5',
+}
+
 _HELLING = {
     '2': '6', '3': '6', '4': '6', '5': '6',
     '1': '0', '6': '0', '7': '0',
@@ -424,6 +432,13 @@ def _process_begr(data: Uniec3Data, begr: dict, reg: ConstructieRegistry) -> dic
     if orientatie is None:
         orientatie = _DEFAULT_ORI.get(locatie, '0')
 
+    # Voor gevel-vlakken: leid locatie (voor/achter/links/rechts) af van compass-richting
+    if vlak == 'VLAK_GEVEL' and not loc_override and begr_gevel:
+        parts = begr_gevel.split('_')
+        compass = parts[-1].upper() if parts else ''
+        if compass in _GEVEL_COMPASS_TO_LOCATIE:
+            locatie = _GEVEL_COMPASS_TO_LOCATIE[compass]
+
     hellingshoek = _HELLING.get(locatie, '6')
 
     constrd = data.first_child(eid, 'CONSTRD')
@@ -459,8 +474,13 @@ def _process_begr(data: Uniec3Data, begr: dict, reg: ConstructieRegistry) -> dic
         dv_naam = 'Raam'
         dv_type = '2'
         if libcrt:
-            u_val = _num(libcrt, 'LIBCONSTRT_U')
-            g_val = _num(libcrt, 'LIBCONSTRT_G')
+            u_val = (_num(libcrt, 'LIBCONSTRT_U') or
+                     _num(libcrt, 'LIBCONSTRT_U_WAARDE') or
+                     _num(libcrt, 'LIBCONSTRT_UWAARDE'))
+            g_val = (_num(libcrt, 'LIBCONSTRT_G') or
+                     _num(libcrt, 'LIBCONSTRT_GGL') or
+                     _num(libcrt, 'LIBCONSTRT_G_WAARDE') or
+                     _num(libcrt, 'LIBCONSTRT_GWAARDE'))
             lt = _prop(libcrt, 'LIBCONSTRT_TYPE')
             dv_type = LIBCONSTRT_TO_TYPE.get(lt, '2')
             dv_naam = _prop(libcrt, 'LIBCONSTRT_OMSCHR') or ('Raam' if dv_type == '2' else 'Deur')
@@ -486,7 +506,9 @@ def _process_begr(data: Uniec3Data, begr: dict, reg: ConstructieRegistry) -> dic
     netto_area = max(0.0, area - total_transp_area)
     return {
         'naam': naam, 'locatie': locatie, 'orientatie': orientatie,
-        'hellingshoek': hellingshoek, 'area': netto_area,
+        'hellingshoek': hellingshoek,
+        'area': area,             # bruto (BEGR_A)
+        'netto_area': netto_area, # netto (bruto minus transparant)
         'constr_guid': constr_guid, 'constr_naam': constr_naam,
         'rc': rc, 'deelvlakken': deelvlakken, 'koudebruggen': koudebruggen,
     }
@@ -1096,7 +1118,7 @@ def _xml_constructie(parent: Element, c: dict, index: int):
     _xml_text(co, 'Kozijn', '-1')
     _xml_text(co, 'Glas', '-1')
     _xml_text(co, 'ProductinformatieGWaarde', '0')
-    _xml_text(co, 'Bron', '2')            # 2 = eigen invoer/berekening
+    _xml_text(co, 'Bron', '1')            # 1 = handmatig (niet overgenomen → Rc blijft zichtbaar)
     _xml_empty(co, 'Opmerkingen')
 
 
@@ -1111,7 +1133,7 @@ def _xml_hoofdvlak(parent: Element, hv: dict, index: int):
     _xml_text(hvx, 'Constructie', hv['constr_guid'])
     _xml_text(hvx, 'Oppervlakte', _fmt(hv['area']))
     _xml_text(hvx, 'BrutoOppervlakte', _fmt(hv['area']))
-    _xml_text(hvx, 'NettoOppervlakte', _fmt(hv['area']))
+    _xml_text(hvx, 'NettoOppervlakte', _fmt(hv.get('netto_area', hv['area'])))
     _xml_text(hvx, 'Breedte', '0')
     _xml_text(hvx, 'HoogteOfLengte', '0')
     _xml_text(hvx, 'Orientatie', hv['orientatie'])
@@ -1226,7 +1248,7 @@ def _xml_rekenzone_algemeen(parent: Element, go: float | None):
     _xml_empty(alg, 'Opmerkingen')
 
 
-def _xml_object(parent: Element, woning: dict, index: int):
+def _xml_object(parent: Element, woning: dict, index: int, gebouwhoogte: float = 0.0):
     obj = SubElement(parent, 'Object')
     obj.set('Index', str(index))
     _xml_text(obj, 'Guid', _guid())
@@ -1322,7 +1344,7 @@ def _xml_object(parent: Element, woning: dict, index: int):
     _xml_text(oc, 'Ligging', '1')
     _xml_text(oc, 'Daktype', '-1')
     _xml_text(oc, 'AantalWoonfuncties', '0')
-    _xml_text(oc, 'Gebouwhoogte', '0.00')
+    _xml_text(oc, 'Gebouwhoogte', _fmt(gebouwhoogte) if gebouwhoogte else '0.00')
 
     # Adresgegevens
     adr = SubElement(obj_alg, 'Adresgegevens')
@@ -1401,6 +1423,12 @@ def convert(uniec3_bytes: bytes, project_naam: str = '') -> bytes:
         project_naam = _prop(gebs[0], 'GEB_OMSCHR') if gebs else 'VABI Project'
         if not project_naam:
             project_naam = 'VABI Project'
+
+    gebouwhoogte = 0.0
+    if gebs:
+        gebouwhoogte = (_num(gebs[0], 'GEB_HOOGTE') or
+                        _num(gebs[0], 'GEB_GEBOUWHOOGTE') or
+                        _num(gebs[0], 'GEB_H') or 0.0)
 
     inst_info = _build_installatie(data)
 
@@ -1505,7 +1533,7 @@ def convert(uniec3_bytes: bytes, project_naam: str = '') -> bytes:
     objecten.set('Index', '-1')
     _xml_text(objecten, 'Guid', _ZERO_GUID)
     for i, w in enumerate(woningen):
-        _xml_object(objecten, w, i)
+        _xml_object(objecten, w, i, gebouwhoogte=gebouwhoogte)
 
     # Energieplannen
     ep = SubElement(root, 'Energieplannen')
