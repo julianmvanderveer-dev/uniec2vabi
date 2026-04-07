@@ -1428,10 +1428,9 @@ def convert(uniec3_bytes: bytes, project_naam: str = '') -> bytes:
             project_naam = 'VABI Project'
 
     gebouwhoogte = 0.0
-    if gebs:
-        gebouwhoogte = (_num(gebs[0], 'GEB_HOOGTE') or
-                        _num(gebs[0], 'GEB_GEBOUWHOOGTE') or
-                        _num(gebs[0], 'GEB_H') or 0.0)
+    infils = data.entities_by_type.get('INFIL', [])
+    if infils:
+        gebouwhoogte = _num(infils[0], 'INFIL_BGH') or 0.0
 
     inst_info = _build_installatie(data)
 
