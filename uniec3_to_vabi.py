@@ -1080,31 +1080,30 @@ def _xml_constructie(parent: Element, c: dict, index: int):
     _xml_text(co, 'ConstructieType', c['type'])
     _xml_text(co, 'DeurMetRaamGlas65Procent', '0')
     _xml_text(co, 'RietenDak', '0')
-    is_transp = c.get('type') in ('2', '3')  # raam of deur
+    is_opaque = c.get('type') not in ('2', '3')  # geen raam of deur
     is_raam   = c.get('type') == '2'
-    # Opaque: Invoer=4/Bron=2 → Rc zichtbaar in VABI lijst
-    # Transparant: Invoer=2/Bron=1 → Uw zichtbaar via UGlas (ramen)
-    _xml_text(co, 'Invoer', '2' if is_transp else '4')
+    is_deur   = c.get('type') == '3'
+    u_str  = _fmt(c.get('u'))
+    rc_str = _fmt(c.get('rc'))
+    g_str  = _fmt(c.get('g'))
+    # Opaque: Invoer=0/Bron=1 → directe Rc-invoer, stabiel bij klikken in VABI
+    # Ramen:  Invoer=2/Bron=1 + UGlas → Uw zichtbaar in VABI lijst
+    # Deuren: Invoer=2/Bron=1 + UKozijn → Uw zichtbaar in VABI lijst
+    _xml_text(co, 'Invoer', '0' if is_opaque else '2')
     _xml_text(co, 'KwaliteitsverklaringInvoermethode', '0')
-    _xml_text(co, 'GMinimaleEisenBbl', '0.00')
     _xml_text(co, 'OppervlaktePerConstructie', '0')
     _xml_text(co, 'Oppervlakte', '0.00')
     _xml_text(co, 'Arc', '0.00')
     _xml_empty(co, 'Merk')
     _xml_empty(co, 'Type')
     _xml_empty(co, 'Code')
-    _xml_text(co, 'RcKwaliteitsverklaring', '0.00')
-    _xml_text(co, 'UKwaliteitsverklaring', '0.00')
-    _xml_text(co, 'GKwaliteitsverklaring', '0.00')
     _xml_text(co, 'KwaliteitsverklaringId', _ZERO_GUID)
     _xml_empty(co, 'KwaliteitsverklaringKozijn')
     _xml_empty(co, 'KwaliteitsverklaringGlas')
     _xml_empty(co, 'KwaliteitsverklaringAfstandhouder')
     _xml_empty(co, 'KwaliteitsverklaringType')
     _xml_empty(co, 'KwaliteitsverklaringIsolatieDikte')
-    _xml_text(co, 'UKozijn', '0.00')
-    # UGlas: voor ramen (type=2) de Uw-waarde invullen zodat VABI deze toont in de lijst
-    u_str = _fmt(c.get('u'))
+    _xml_text(co, 'UKozijn', u_str if is_deur else '0.00')
     _xml_text(co, 'UGlas', u_str if is_raam else '0.00')
     _xml_text(co, 'PsiGlas', '0.000')
     _xml_text(co, 'OmtrekBeglazing', '0.00')
@@ -1112,9 +1111,9 @@ def _xml_constructie(parent: Element, c: dict, index: int):
     _xml_text(co, 'Glasroedelengte', '0.00')
     _xml_text(co, 'OppervlakteBeglazing', '0.00')
     _xml_text(co, 'OppervlakteKozijn', '0.00')
-    _xml_text(co, 'RcInvoer', _fmt(c.get('rc')))
-    _xml_text(co, 'UInvoer', _fmt(c.get('u')))
-    _xml_text(co, 'GInvoer', _fmt(c.get('g')))
+    _xml_text(co, 'Rc', rc_str if is_opaque else '0.00')
+    _xml_text(co, 'U', u_str if not is_opaque else '0.00')
+    _xml_text(co, 'G', g_str)
     _xml_text(co, 'IsolatieAanwezig', '-1')
     _xml_text(co, 'Rietdikte', '-1')
     _xml_text(co, 'IsolatiedikteOnbekend', '0')
@@ -1124,7 +1123,7 @@ def _xml_constructie(parent: Element, c: dict, index: int):
     _xml_text(co, 'Kozijn', '-1')
     _xml_text(co, 'Glas', '-1')
     _xml_text(co, 'ProductinformatieGWaarde', '0')
-    _xml_text(co, 'Bron', '1' if is_transp else '2')
+    _xml_text(co, 'Bron', '1')
     _xml_empty(co, 'Opmerkingen')
 
 
