@@ -1087,10 +1087,9 @@ def _xml_constructie(parent: Element, c: dict, index: int):
     u_str  = _fmt(c.get('u'))
     rc_str = _fmt(c.get('rc'))
     g_str  = _fmt(c.get('g'))
-    # Opaque: Invoer=0/Bron=1 → directe Rc-invoer, stabiel bij klikken in VABI
-    # Ramen:  Invoer=2/Bron=1 + UGlas → Uw zichtbaar in VABI lijst
-    # Deuren: Invoer=2/Bron=1 + UKozijn → Uw zichtbaar in VABI lijst
-    _xml_text(co, 'Invoer', '0' if is_opaque else '2')
+    # Invoer=0 (directe invoer) voor alle typen: stabiel bij klikken in VABI
+    # Opaque: Rc in <Rc>, transparent: U in <U> + UGlas/UKozijn
+    _xml_text(co, 'Invoer', '0')
     _xml_text(co, 'KwaliteitsverklaringInvoermethode', '0')
     _xml_text(co, 'OppervlaktePerConstructie', '0')
     _xml_text(co, 'Oppervlakte', '0.00')
