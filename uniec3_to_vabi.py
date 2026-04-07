@@ -1347,7 +1347,7 @@ def _xml_object(parent: Element, woning: dict, index: int, gebouwhoogte: float =
     _xml_text(oc, 'Ligging', '1')
     _xml_text(oc, 'Daktype', '-1')
     _xml_text(oc, 'AantalWoonfuncties', '0')
-    _xml_text(oc, 'Gebouwhoogte', _fmt(gebouwhoogte) if gebouwhoogte else '0.00')
+    _xml_text(oc, 'Gebouwhoogte', '0.00')
 
     # Adresgegevens
     adr = SubElement(obj_alg, 'Adresgegevens')
