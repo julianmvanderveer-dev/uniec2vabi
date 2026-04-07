@@ -137,10 +137,11 @@ def _num(entity: dict, prop_id: str) -> float | None:
         return None
 
 
-def _fmt(val) -> str:
+def _fmt(val, decimals: int = 2) -> str:
     if val is None:
-        return '0'
-    return str(round(float(val), 4))
+        return f'0.{"0" * decimals}'
+    v = round(float(val), decimals)
+    return f'{v:.{decimals}f}'
 
 
 def _omschr_to_locatie(omschr: str) -> str | None:
@@ -1469,11 +1470,11 @@ def convert(uniec3_bytes: bytes, project_naam: str = '') -> bytes:
     _xml_text(root, 'Hidden', '0')
     _xml_text(root, 'CreatedBy', '1')
     _xml_text(root, 'ApplicationVersion', '11.2')
-    _xml_text(root, 'XmlVersie', '110201001')
-    _xml_text(root, 'FullApplicationVersion', '11.2.1')
+    _xml_text(root, 'XmlVersie', '110202012')
+    _xml_text(root, 'FullApplicationVersion', '11.2.2')
     _xml_text(root, 'CalculationKernelVersion', '1.5')
     _xml_text(root, 'CalculationKernelVersionMwa', '2.1')
-    _xml_text(root, 'LatestXmlUpgrade', '110200029')
+    _xml_text(root, 'LatestXmlUpgrade', '110202009')
     _xml_text(root, 'Backup', '0')
     _xml_text(root, 'FileName', '')
     _xml_text(root, 'IsEmpty', '0')
