@@ -542,24 +542,26 @@ def _process_unit(data: Uniec3Data, unit: dict,
     if not unit_rzs:
         return None
 
-    hoofdvlakken = []
+    multi = len(unit_rzs) > 1
+    rekenzones = []
     go_total = 0.0
-    for urz in unit_rzs:
+    for i, urz in enumerate(unit_rzs):
         go = _num(urz, 'UNIT-RZAG') or _num(urz, 'UNIT-RZ_AG') or _num(urz, 'UNIT_RZAG')
         if go:
             go_total += go
-        for begr in data.children(urz['NTAEntityDataId'], 'BEGR'):
-            hv = _process_begr(data, begr, reg)
-            hoofdvlakken.append(hv)
+        rz_naam = f'Rekenzone {i + 1}' if multi else 'Rekenzone'
+        hv_list = [_process_begr(data, begr, reg)
+                   for begr in data.children(urz['NTAEntityDataId'], 'BEGR')]
+        rekenzones.append({'naam': rz_naam, 'go': go, 'hoofdvlakken': hv_list})
 
-    if not hoofdvlakken and not go_total:
+    if not rekenzones and not go_total:
         return None
 
     return {
         'naam': naam, 'straat': straat, 'huisnummer': huisnr,
         'postcode': postcode, 'woonplaats': woonplaats,
         'go': go_total or None, 'inst_guid': inst_guid,
-        'hoofdvlakken': hoofdvlakken,
+        'rekenzones': rekenzones,
     }
 
 
@@ -1273,61 +1275,66 @@ def _xml_object(parent: Element, woning: dict, index: int, gebouwhoogte: float =
     rzs = SubElement(obj, 'Rekenzones')
     rzs.set('Index', '-1')
     _xml_text(rzs, 'Guid', _ZERO_GUID)
-    rz = SubElement(rzs, 'Rekenzone')
-    rz.set('Index', '0')
-    _xml_text(rz, 'Guid', _guid())
 
-    # Rekenzone Algemeen (uitgebreid)
-    _xml_rekenzone_algemeen(rz, woning.get('go'))
+    for rz_idx, rz_data in enumerate(woning.get('rekenzones', [
+        {'naam': 'Rekenzone', 'go': woning.get('go'),
+         'hoofdvlakken': woning.get('hoofdvlakken', [])}
+    ])):
+        rz = SubElement(rzs, 'Rekenzone')
+        rz.set('Index', str(rz_idx))
+        _xml_text(rz, 'Guid', _guid())
 
-    # VerlichtingList — verplicht na Algemeen
-    _xml_list(rz, 'VerlichtingList')
+        # Rekenzone Algemeen (uitgebreid)
+        _xml_rekenzone_algemeen(rz, rz_data.get('go'))
 
-    # Geometrie
-    geo = SubElement(rz, 'Geometrie')
-    geo.set('Index', '-1')
-    _xml_text(geo, 'Guid', _guid())
-    for i, hv in enumerate(woning.get('hoofdvlakken', [])):
-        _xml_hoofdvlak(geo, hv, i)
+        # VerlichtingList — verplicht na Algemeen
+        _xml_list(rz, 'VerlichtingList')
 
-    # Maatwerk (lege lijst — wordt door VABI ingevuld)
-    _xml_list(rz, 'Maatwerk')
+        # Geometrie
+        geo = SubElement(rz, 'Geometrie')
+        geo.set('Index', '-1')
+        _xml_text(geo, 'Guid', _guid())
+        for i, hv in enumerate(rz_data.get('hoofdvlakken', [])):
+            _xml_hoofdvlak(geo, hv, i)
 
-    # Rekenzone metadata + installatie-koppeling (VABI 11.x)
-    _xml_text(rz, 'ZoneType', '0')
-    _xml_text(rz, 'Naam', 'Rekenzone')
-    _xml_empty(rz, 'Installatie')
-    _xml_empty(rz, 'Opmerkingen')
-    _xml_text(rz, 'OwnInstallatieId', woning['inst_guid'])
-    _xml_text(rz, 'InstallatieRefRekenzoneId', _ZERO_GUID)
-    _xml_text(rz, 'KoelingOpwekkingRefRekenzoneId', _ZERO_GUID)
-    _xml_text(rz, 'KoelingAfgifteRefRekenzoneId', _ZERO_GUID)
-    _xml_text(rz, 'KoelingDistributieRefRekenzoneId', _ZERO_GUID)
-    _xml_text(rz, 'VerwarmingRefRekenzoneId', _ZERO_GUID)
-    _xml_text(rz, 'VerwarmingAfgifteRefRekenzoneId', _ZERO_GUID)
-    _xml_text(rz, 'VerwarmingDistributieRefRekenzoneId', _ZERO_GUID)
-    _xml_text(rz, 'VentilatieRefRekenzoneId', _ZERO_GUID)
-    _xml_text(rz, 'TapwaterRefRekenzoneId', _ZERO_GUID)
-    _xml_text(rz, 'VochtRegelingRefRekenzoneId', _ZERO_GUID)
-    _xml_text(rz, 'KoelingBron', '-1')
-    _xml_empty(rz, 'KoelingOpmerkingen')
-    _xml_text(rz, 'VerwarmingBron', '-1')
-    _xml_empty(rz, 'VerwarmingOpmerkingen')
-    _xml_empty(rz, 'KoelingAfgifte')
-    _xml_empty(rz, 'KoelingDistributie')
-    _xml_empty(rz, 'KoelingOpwekking')
-    _xml_empty(rz, 'Verwarming')
-    _xml_empty(rz, 'VerwarmingDistributie')
-    _xml_empty(rz, 'VerwarmingAfgifte')
-    _xml_empty(rz, 'Tapwater')
-    _xml_empty(rz, 'Ventilatie')
-    _xml_empty(rz, 'VochtRegeling')
-    _xml_empty(rz, 'ZonneEnergie')
-    _xml_text(rz, 'AantalIdentiekeSystemenTapwaterSysteem1', '1')
-    _xml_text(rz, 'AantalIdentiekeSystemenTapwaterSysteem2', '1')
-    _xml_text(rz, 'AantalIdentiekeSystemenVerwarming', '1')
-    _xml_text(rz, 'AantalIdentiekeSystemenVentilatie', '1')
-    _xml_text(rz, 'AantalIdentiekeSystemenKoeling', '1')
+        # Maatwerk (lege lijst — wordt door VABI ingevuld)
+        _xml_list(rz, 'Maatwerk')
+
+        # Rekenzone metadata + installatie-koppeling (VABI 11.x)
+        _xml_text(rz, 'ZoneType', '0')
+        _xml_text(rz, 'Naam', rz_data.get('naam', 'Rekenzone'))
+        _xml_empty(rz, 'Installatie')
+        _xml_empty(rz, 'Opmerkingen')
+        _xml_text(rz, 'OwnInstallatieId', woning['inst_guid'])
+        _xml_text(rz, 'InstallatieRefRekenzoneId', _ZERO_GUID)
+        _xml_text(rz, 'KoelingOpwekkingRefRekenzoneId', _ZERO_GUID)
+        _xml_text(rz, 'KoelingAfgifteRefRekenzoneId', _ZERO_GUID)
+        _xml_text(rz, 'KoelingDistributieRefRekenzoneId', _ZERO_GUID)
+        _xml_text(rz, 'VerwarmingRefRekenzoneId', _ZERO_GUID)
+        _xml_text(rz, 'VerwarmingAfgifteRefRekenzoneId', _ZERO_GUID)
+        _xml_text(rz, 'VerwarmingDistributieRefRekenzoneId', _ZERO_GUID)
+        _xml_text(rz, 'VentilatieRefRekenzoneId', _ZERO_GUID)
+        _xml_text(rz, 'TapwaterRefRekenzoneId', _ZERO_GUID)
+        _xml_text(rz, 'VochtRegelingRefRekenzoneId', _ZERO_GUID)
+        _xml_text(rz, 'KoelingBron', '-1')
+        _xml_empty(rz, 'KoelingOpmerkingen')
+        _xml_text(rz, 'VerwarmingBron', '-1')
+        _xml_empty(rz, 'VerwarmingOpmerkingen')
+        _xml_empty(rz, 'KoelingAfgifte')
+        _xml_empty(rz, 'KoelingDistributie')
+        _xml_empty(rz, 'KoelingOpwekking')
+        _xml_empty(rz, 'Verwarming')
+        _xml_empty(rz, 'VerwarmingDistributie')
+        _xml_empty(rz, 'VerwarmingAfgifte')
+        _xml_empty(rz, 'Tapwater')
+        _xml_empty(rz, 'Ventilatie')
+        _xml_empty(rz, 'VochtRegeling')
+        _xml_empty(rz, 'ZonneEnergie')
+        _xml_text(rz, 'AantalIdentiekeSystemenTapwaterSysteem1', '1')
+        _xml_text(rz, 'AantalIdentiekeSystemenTapwaterSysteem2', '1')
+        _xml_text(rz, 'AantalIdentiekeSystemenVerwarming', '1')
+        _xml_text(rz, 'AantalIdentiekeSystemenVentilatie', '1')
+        _xml_text(rz, 'AantalIdentiekeSystemenKoeling', '1')
 
     # ObjectAlgemeen
     obj_alg = SubElement(obj, 'ObjectAlgemeen')
@@ -1729,7 +1736,9 @@ def parse_uniec3(uniec3_bytes: bytes, project_naam: str = '') -> dict:
         raw = _process_unit(data, unit, reg, inst_info['guid'])
         if raw is None:
             continue
-        hvs      = [_adapt_hoofdvlak(hv) for hv in raw.get('hoofdvlakken', [])]
+        hvs      = [_adapt_hoofdvlak(hv)
+                    for rz in raw.get('rekenzones', [])
+                    for hv in rz.get('hoofdvlakken', [])]
         adres_r1 = ' '.join(filter(None, [raw.get('straat', ''), raw.get('huisnummer', '')]))
         adres_r2 = ' '.join(filter(None, [raw.get('postcode', ''), raw.get('woonplaats', '')]))
         adres    = ', '.join(filter(None, [adres_r1, adres_r2]))
