@@ -6,7 +6,7 @@ Routes:
   POST /upload              Bestand verwerken → redirect /checkout/<id>
   GET  /checkout/<id>       Preview + klantgegevens + betaalknop
   POST /convert-free/<id>   Gratis conversie (≤ FREE_UP_TO woningen)
-  POST /pay/<id>            Mollie betaling aanmaken → iDEAL
+  POST /pay/<id>            Mollie betaling aanmaken → iDEAL (of promotiecode)
   GET  /return              Terugkeer na betaling
   GET  /wait/<id>           Wachtpagina
   POST /webhook             Mollie webhook
@@ -352,6 +352,17 @@ def pay(file_id):
     if not customer['naam'] or not customer['email']:
         flash('Vul je naam en e-mailadres in voor de factuur.', 'error')
         return redirect(url_for('checkout', file_id=file_id))
+
+    # Promotiecode — sla Mollie over
+    promo = request.form.get('promo_code', '').strip().upper()
+    valid_codes = {c.strip().upper() for c in
+                   os.environ.get('BYPASS_CODES', config.BYPASS_CODES).split(',') if c.strip()}
+    if promo and promo in valid_codes:
+        with _lock:
+            if file_id in _store:
+                _store[file_id]['customer']   = customer
+                _store[file_id]['invoice_nr'] = _invoice_nr()
+        return _do_conversion_and_redirect(file_id, entry)
 
     invoice_nr = _invoice_nr()
     with _lock:

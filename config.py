@@ -20,3 +20,7 @@ BEDRIJF_EMAIL       = 'info@borgch.nl'
 
 # Admin (factuuroverzicht) — stel in als Render environment variable ADMIN_KEY
 ADMIN_KEY = ''
+
+# Promotiecode(s) — kommagescheiden, stel in als Render environment variable BYPASS_CODES
+# Voorbeeld: BYPASS_CODES=INTERN,BENGCERT2024
+BYPASS_CODES = 'ORANJELAAN3G!'
