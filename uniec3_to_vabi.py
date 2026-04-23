@@ -1196,6 +1196,8 @@ def _xml_rekenzone_algemeen(parent: Element, go: float | None):
     _xml_text(alg, 'Renovatiejaar', '0')
     _xml_text(alg, 'Qv10Gemeten', '0')
     _xml_text(alg, 'Qv10Waarde', '0.000')
+    _xml_text(alg, 'EffectieveInterneWarmtecapaciteitVolgensBijlageB', '0')
+    _xml_text(alg, 'EffectieveInterneWarmtecapaciteit', '0.00')
     _xml_text(alg, 'TypeBouwwijzeVloeren', '1')
     _xml_text(alg, 'TypeBouwwijzeWanden', '1')
     _xml_text(alg, 'KwaliteitsverklaringPCM', '0')
