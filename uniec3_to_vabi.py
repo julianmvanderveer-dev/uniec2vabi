@@ -21,7 +21,7 @@ VLAK_TO_LOCATIE = {
     'VLAK_VLOER':        '6',
     'VLAK_GEVEL':        '2',
     'VLAK_DAK':          '1',
-    'VLAK_VLOER_BOVBUI': '7',
+    'VLAK_VLOER_BOVBUI': '6',  # 7 bestaat niet als geldig VABI enum; vloer boven buiten = vloer (6)
     'VLAK_KASW':         '2',
     'VLAK_WONSCHEID':    '2',
 }
