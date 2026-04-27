@@ -74,22 +74,23 @@ VENT_SYS_MAP = {
 }
 
 # VERW-OPWEK_TYPE_* (oud formaat) → VABI 11.x TypeOpwekker waarden
-# 1=HR condenserend gas, 2=niet-condenserend, 3=WKK, 9=warmtepomp, 10=stadsverwarming
+# 1=HR condenserend gas, 2=niet-condenserend, 3=WKK, 8=warmtepomp, 10=stadsverwarming
+# NB: 9 is geen geldig VABI-enum; alle warmtepompen → 8 (TypeWarmtepomp specificeert subtype)
 VERW_TYPE_MAP = {
     'VERW-OPWEK_TYPE_A': '1',  'VERW-OPWEK_TYPE_B': '1',
     'VERW-OPWEK_TYPE_C': '2',  'VERW-OPWEK_TYPE_D': '10',
     'VERW-OPWEK_TYPE_E': '10', 'VERW-OPWEK_TYPE_F': '10',
-    'VERW-OPWEK_TYPE_G': '9',  'VERW-OPWEK_TYPE_H': '9',
+    'VERW-OPWEK_TYPE_G': '8',  'VERW-OPWEK_TYPE_H': '8',  # warmtepomp
 }
 
 # VERW-OPWEK_FABR_* (werkelijk formaat in .uniec3) → VABI 11.x TypeOpwekker waarden
 VERW_FABR_MAP = {
     'VERW-OPWEK_FABR_A': '1',   # HR condenserende ketel gas
     'VERW-OPWEK_FABR_B': '2',   # Niet-condenserende ketel gas
-    'VERW-OPWEK_FABR_C': '9',   # Lucht-water warmtepomp elektrisch
+    'VERW-OPWEK_FABR_C': '8',   # Lucht-water warmtepomp elektrisch
     'VERW-OPWEK_FABR_D': '10',  # Stadsverwarming
-    'VERW-OPWEK_FABR_E': '9',   # Grond/water-water warmtepomp elektrisch
-    'VERW-OPWEK_FABR_F': '9',   # Warmtepomp gas-absorptie
+    'VERW-OPWEK_FABR_E': '8',   # Grond/water-water warmtepomp elektrisch
+    'VERW-OPWEK_FABR_F': '8',   # Warmtepomp gas-absorptie
     'VERW-OPWEK_FABR_G': '3',   # WKK
     'VERW-OPWEK_FABR_H': '1',   # Overig HR ketel
 }
@@ -494,10 +495,28 @@ def _process_begr(data: Uniec3Data, begr: dict, reg: ConstructieRegistry) -> dic
             dv_type = LIBCONSTRT_TO_TYPE.get(lt, '2')
             dv_naam = _prop(libcrt, 'LIBCONSTRT_OMSCHR') or ('Raam' if dv_type == '2' else 'Deur')
         dv_guid = reg.get_or_create(naam=dv_naam, constr_type=dv_type, u=u_val, g=g_val)
+
+        # Belemmering (schaduw/obstruction) uitlezen uit BELEMMERING-kind van CONSTRT
+        belem_besch = _prop(constrt, 'CONSTRT_BESCH') or ''
+        belem_ent = data.first_child(constrt['NTAEntityDataId'], 'BELEMMERING')
+        belem = {'besch': belem_besch}
+        if belem_ent:
+            def _bnum(key):
+                raw = _prop(belem_ent, key) or ''
+                try:    return float(raw.replace(',', '.'))
+                except: return None
+            belem.update({
+                'r_afstand':  _bnum('BELEMM_HOR_A_RECHTS'),
+                'r_breedte':  _bnum('BELEMM_HOR_B_RECHTS'),
+                'l_afstand':  _bnum('BELEMM_HOR_A_LINKS'),
+                'l_breedte':  _bnum('BELEMM_HOR_B_LINKS'),
+                'const_pct':  _bnum('BELEMM_CONST_BELEM'),   # numeriek als niet-REKEN
+            })
+
         deelvlakken.append({
             'naam': dv_naam, 'guid': dv_guid, 'area': ct_area,
             'orientatie': orientatie, 'hellingshoek': hellingshoek,
-            'u': u_val, 'g': g_val,
+            'u': u_val, 'g': g_val, 'belem': belem,
         })
 
     koudebruggen = []
@@ -683,8 +702,8 @@ def _xml_verwarming_opwekker(parent: Element, index: int, verw_type: str = '-1')
     _xml_text(op, 'TypeOpwekker', verw_type)
     _xml_text(op, 'SubType', '-1')
     _xml_text(op, 'AantalToestellenMetWaakvlam', '0')
-    _xml_text(op, 'TypeWarmtepomp', '0' if verw_type == '9' else '-1')
-    _xml_text(op, 'BronWarmtepomp', '0' if verw_type == '9' else '-1')
+    _xml_text(op, 'TypeWarmtepomp', '0' if verw_type == '8' else '-1')
+    _xml_text(op, 'BronWarmtepomp', '0' if verw_type == '8' else '-1')
     _xml_text(op, 'BronGerealiseerdOfVergunning', '-1')
     _xml_text(op, 'TypeGrondwateraquifer', '-1')
     _xml_text(op, 'VoldoetAanMinCOP', '0')
@@ -1167,13 +1186,51 @@ def _xml_hoofdvlak(parent: Element, hv: dict, index: int):
         _xml_text(dvx, 'Naam', dv['naam'])
         _xml_text(dvx, 'Constructie', dv['guid'])
         _xml_text(dvx, 'Oppervlakte', _fmt(dv['area']))
-        _xml_text(dvx, 'Orientatie', dv['orientatie'])
-        _xml_text(dvx, 'Hellingshoek', dv['hellingshoek'])
+        _xml_text(dvx, 'RelevanteOppervlakte', _fmt(dv['area']))
         _xml_text(dvx, 'U', _fmt(dv.get('u')))
         _xml_text(dvx, 'G', _fmt(dv.get('g')))
         _xml_text(dvx, 'NaamConstructie', dv['naam'])
         _xml_text(dvx, 'Belemmering', '0')
         _xml_text(dvx, 'Zonwering', '0')
+        _xml_text(dvx, 'Breedte', '0.00')
+        _xml_text(dvx, 'HoogteOfLengte', '0.00')
+        _xml_text(dvx, 'Arc', '0.00')
+
+        # Belemmering (schaduw) vanuit Uniec BELEMMERING-entiteit
+        belem = dv.get('belem', {})
+        besch  = belem.get('besch', '')
+        heeft_rechts = 'RECHTS' in besch or 'BEIDE' in besch
+        heeft_links  = 'LINKS'  in besch or 'BEIDE' in besch
+        const_pct    = belem.get('const_pct')   # numerieke constante belemmering (%)
+
+        _xml_text(dvx, 'InvoerBeschaduwing', '-1')
+        _xml_text(dvx, 'InvoerOverstek', '-1')
+        _xml_text(dvx, 'ConstanteBelemmering',
+                  str(int(const_pct)) if const_pct is not None else '-1')
+        _xml_text(dvx, 'Zijbelemmering', '-1')
+        _xml_text(dvx, 'RelatieveBreedteZijbelemmering', '-1')
+        _xml_text(dvx, 'ZonweringGglAlt', '0.000')
+        _xml_text(dvx, 'ZonweringGglDif', '0.000')
+        _xml_text(dvx, 'ZonweringBediening', '-1')
+        _xml_text(dvx, 'ZonweringKleur', '-1')
+        _xml_text(dvx, 'BelemmeringHoogte', '0.00')
+        _xml_text(dvx, 'BelemmeringAfstand', '0.00')
+        _xml_text(dvx, 'BelemmeringPercentage', '0')
+        _xml_text(dvx, 'BelemmeringLinks', '1' if heeft_links else '0')
+        _xml_text(dvx, 'BelemmeringLinksAfstand',
+                  _fmt(belem.get('l_afstand') or 0.0))
+        _xml_text(dvx, 'BelemmeringLinksBreedte',
+                  _fmt(belem.get('l_breedte') or 0.0))
+        _xml_text(dvx, 'BelemmeringLinksHoogteverschil', '0')
+        _xml_text(dvx, 'BelemmeringRechts', '1' if heeft_rechts else '0')
+        _xml_text(dvx, 'BelemmeringRechtsAfstand',
+                  _fmt(belem.get('r_afstand') or 0.0))
+        _xml_text(dvx, 'BelemmeringRechtsBreedte',
+                  _fmt(belem.get('r_breedte') or 0.0))
+        _xml_text(dvx, 'BelemmeringRechtsHoogteverschil', '0')
+        _xml_text(dvx, 'Overstek', '0')
+        _xml_text(dvx, 'OverstekPercentage', '0')
+        _xml_text(dvx, 'AutoNaam', '0')
 
     # KoudebrugList
     kb_list = _xml_list(hvx, 'KoudebrugList')
@@ -1351,7 +1408,11 @@ def _xml_object(parent: Element, woning: dict, index: int, gebouwhoogte: float =
     _xml_text(obj_obj, 'Objecttype', 'Woning')
     _xml_text(obj_obj, 'Bouwfase', 'Oplevering')
     _xml_text(obj_obj, 'Opname', 'Detailopname')
-    _xml_text(obj_obj, 'UitgebreideMethodeKoudebruggen', '0')
+    has_kb = any(kb
+                 for rz in woning.get('rekenzones', [])
+                 for hv in rz.get('hoofdvlakken', [])
+                 for kb in hv.get('koudebruggen', []))
+    _xml_text(obj_obj, 'UitgebreideMethodeKoudebruggen', '1' if has_kb else '0')
     _xml_text(obj_obj, 'UitgebreideMethodeAorAos', '0')
     _xml_text(obj_obj, 'IsSubsidieAanwezigObv', '0')
     _xml_empty(obj_obj, 'SubsidieAanwezigObvText')
@@ -1424,13 +1485,57 @@ def _xml_object(parent: Element, woning: dict, index: int, gebouwhoogte: float =
     _xml_empty(reg_inv, 'BezoekendeEpAdviseurVoorletters')
     _xml_empty(reg_inv, 'BezoekendeEpAdviseurTussenvoegsel')
     _xml_empty(reg_inv, 'BezoekendeEpAdviseurAchternaam')
-    _xml_empty(reg_inv, 'Examennummer')
+    _xml_empty(reg_inv, 'Vakbekwaamheidsnummer')
     _xml_empty(reg_inv, 'Invoerdatum')
     _xml_empty(reg_inv, 'InvoerendeEpAdviseur')
     _xml_empty(reg_inv, 'Certificaathouder')
     _xml_text(reg_inv, 'Gebruiker', '-1')
     _xml_text(reg_inv, 'Status', '2')
     _xml_text(reg_inv, 'RepresentatieveWoningen', '0')
+    # Lege representatieve invoerlijst — voorkomt EP-Online fetch bij ontbrekend veld
+    orril = SubElement(reg_inv, 'ObjectRegistratieRepresentatiefInvoerList')
+    orril.set('Index', '-1')
+    _xml_text(orril, 'Guid', _ZERO_GUID)
+
+    # Vastgelegde registratielijst (lege sentinel — voorkomt EP-Online fetch)
+    rvl = SubElement(obj_alg, 'RegistratiegegevensVastgelegdList')
+    rvl.set('Index', '-1')
+    _xml_text(rvl, 'Guid', _ZERO_GUID)
+
+    # Strategisch voorraadbeleid (vereist door VABI 11.x schema)
+    svb = SubElement(obj_alg, 'StrategischVoorraadbeleid')
+    svb.set('Index', '-1')
+    _xml_text(svb, 'Guid', _guid())
+    _xml_text(svb, 'Status', '-1')
+    SubElement(svb, 'EindeExploitatie')
+    SubElement(svb, 'DatumOnderhoud')
+
+    # Overige verplichte ObjectAlgemeen-velden
+    SubElement(obj_alg, 'LaatsteRegistratie')
+    _xml_text(obj_alg, 'DpiGasloosAuto', '1')
+    _xml_text(obj_alg, 'DpiGasloosInvoer', '-1')
+    SubElement(obj_alg, 'CalculatedDpiGasloosInvoerValue')
+    _xml_text(obj_alg, 'DpiIsolatieniveauAuto', '1')
+    _xml_text(obj_alg, 'DpiIsolatieniveauInvoer', '-1')
+    SubElement(obj_alg, 'CalculatedDpiIsolatieniveauInvoerValue')
+    SubElement(obj_alg, 'Opmerkingen')
+    _xml_text(obj_alg, 'Bron', '-1')
+
+    # Wws-sectie (woningwaarderingsstelsel) — Status=0 is vereist om server-check te voorkomen
+    wws = SubElement(obj, 'Wws')
+    wws.set('Index', '-1')
+    _xml_text(wws, 'Guid', _guid())
+    wws_alg = SubElement(wws, 'Algemeen')
+    wws_alg.set('Index', '-1')
+    _xml_text(wws_alg, 'Guid', _guid())
+    _xml_text(wws_alg, 'Status', '0')
+    _xml_text(wws_alg, 'Monument', '0')
+    _xml_text(wws_alg, 'OnzelfstandigeWoning', 'false')
+    _xml_text(wws_alg, 'OppervlakteOnzelfstandigeWoning', '0.00')
+    _xml_text(wws_alg, 'OppervlakteGemeenschappelijkeDelen', '0.00')
+    _xml_text(wws_alg, 'AantalOnzelfstandigeDelenBinnenObject', '0')
+    _xml_text(wws_alg, 'IsZorgwoning', '0')
+    _xml_text(wws_alg, 'IsEpvAanwezig', '0')
 
 
 # ─── HOOFDFUNCTIE ─────────────────────────────────────────────────────────────
