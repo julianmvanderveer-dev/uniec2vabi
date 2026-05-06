@@ -14,13 +14,26 @@
   <div>
     <h1 class="text-2xl font-bold text-slate-800">Conversie geslaagd!</h1>
     <p class="text-slate-500 mt-2 text-sm">
-      <span class="font-medium">{{ filename }}</span> is omgezet naar VABI EPA formaat.<br>
-      {{ count }} woning{{ '' if count == 1 else 'en' }} verwerkt.
+      <span class="font-medium">{{ filename }}</span> is omgezet naar
+      {% if direction == 'vabi_to_uniec3' %}Uniec3 formaat.<br>{{ count }} rekenzone{{ '' if count == 1 else 's' }} verwerkt.
+      {% else %}VABI EPA formaat.<br>{{ count }} woning{{ '' if count == 1 else 'en' }} verwerkt.
+      {% endif %}
     </p>
   </div>
 
   <!-- Download knoppen -->
   <div class="space-y-3">
+    {% if direction == 'vabi_to_uniec3' %}
+    <a href="{{ url_for('download_uniec3', file_id=file_id) }}"
+       class="flex items-center justify-center gap-3 w-full bg-brynt-600 hover:bg-brynt-700
+              text-white font-semibold py-3.5 rounded-xl transition shadow-sm">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 10v6m0 0l-3-3m3 3l3-3M3 17v3a1 1 0 001 1h16a1 1 0 001-1v-3"/>
+      </svg>
+      Download .uniec3 bestand
+    </a>
+    {% else %}
     <a href="{{ url_for('download_epa', file_id=file_id) }}"
        class="flex items-center justify-center gap-3 w-full bg-brynt-600 hover:bg-brynt-700
               text-white font-semibold py-3.5 rounded-xl transition shadow-sm">
@@ -30,6 +43,7 @@
       </svg>
       Download .epa bestand
     </a>
+    {% endif %}
 
     {% if not is_free %}
     <a href="{{ url_for('download_invoice', file_id=file_id) }}"
@@ -45,7 +59,7 @@
   </div>
 
   <p class="text-xs text-slate-400">
-    Bewaar het .epa bestand — de download link verloopt na enige tijd.
+    Bewaar het bestand — de download link verloopt na enige tijd.
   </p>
 
   <a href="{{ url_for('index') }}" class="text-sm text-brynt-600 hover:underline block">

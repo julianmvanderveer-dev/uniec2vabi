@@ -31,6 +31,7 @@ from fpdf import FPDF
 from mollie.api.client import Client as MollieClient
 
 from uniec3_to_vabi import convert as uniec3_convert, Uniec3Data, _prop
+from vabi_to_uniec3 import convert as vabi_convert, _read_vabi
 import config
 
 # ── App ───────────────────────────────────────────────────────────────────────
@@ -266,15 +267,57 @@ def upload():
     if not f or f.filename == '':
         flash('Geen bestand geselecteerd.', 'error')
         return redirect(url_for('index'))
-    if not f.filename.lower().endswith('.uniec3'):
-        flash('Selecteer een geldig .uniec3 bestand.', 'error')
+
+    fname = f.filename.lower()
+    raw = f.read()
+
+    # ── VABI EPA → Uniec3 richting ─────────────────────────────────────────────
+    if fname.endswith('.epa'):
+        try:
+            vabi = _read_vabi(raw)
+            count = sum(len(obj.get('rekenzones', []))
+                        for obj in vabi.get('objecten', []))
+            preview = {
+                'naam':     vabi.get('naam', f.filename),
+                'objecten': len(vabi.get('objecten', [])),
+                'zones':    count,
+                'richting': 'vabi_to_uniec3',
+            }
+        except Exception as e:
+            flash(f'Fout bij inlezen VABI bestand: {e}', 'error')
+            return redirect(url_for('index'))
+
+        if count == 0:
+            flash('Geen rekenzones gevonden in dit .epa bestand.', 'error')
+            return redirect(url_for('index'))
+
+        file_id = str(uuid.uuid4())
+        with _lock:
+            _store[file_id] = {
+                'bytes':       raw,
+                'epa_bytes':   None,
+                'uniec3_bytes': None,
+                'filename':    f.filename,
+                'count':       count,
+                'preview':     preview,
+                'direction':   'vabi_to_uniec3',
+                'customer':    {},
+                'invoice_nr':  None,
+                'payment_id':  None,
+                'created_at':  time.time(),
+            }
+        return redirect(url_for('checkout', file_id=file_id))
+
+    # ── Uniec3 → VABI EPA richting ─────────────────────────────────────────────
+    if not fname.endswith('.uniec3'):
+        flash('Selecteer een geldig .uniec3 of .epa bestand.', 'error')
         return redirect(url_for('index'))
 
-    raw = f.read()
     try:
         data    = Uniec3Data(raw)
         count   = len(data.entities_by_type.get('UNIT', []))
         preview = _build_preview(data)
+        preview['richting'] = 'uniec3_to_vabi'
     except Exception as e:
         flash(f'Fout bij inlezen bestand: {e}', 'error')
         return redirect(url_for('index'))
@@ -286,15 +329,17 @@ def upload():
     file_id = str(uuid.uuid4())
     with _lock:
         _store[file_id] = {
-            'bytes':      raw,
-            'epa_bytes':  None,
-            'filename':   f.filename,
-            'count':      count,
-            'preview':    preview,
-            'customer':   {},
-            'invoice_nr': None,
-            'payment_id': None,
-            'created_at': time.time(),
+            'bytes':       raw,
+            'epa_bytes':   None,
+            'uniec3_bytes': None,
+            'filename':    f.filename,
+            'count':       count,
+            'preview':     preview,
+            'direction':   'uniec3_to_vabi',
+            'customer':    {},
+            'invoice_nr':  None,
+            'payment_id':  None,
+            'created_at':  time.time(),
         }
     return redirect(url_for('checkout', file_id=file_id))
 
@@ -454,7 +499,9 @@ def webhook():
             return '', 200
         with _lock:
             entry = _store.get(file_id)
-        if entry and not entry.get('epa_bytes'):
+        direction = entry.get('direction', 'uniec3_to_vabi') if entry else 'uniec3_to_vabi'
+        result_key = 'uniec3_bytes' if direction == 'vabi_to_uniec3' else 'epa_bytes'
+        if entry and not entry.get(result_key):
             _run_conversion(file_id, entry)
     except Exception:
         pass
@@ -465,13 +512,16 @@ def webhook():
 def success(file_id):
     with _lock:
         entry = _store.get(file_id)
-    if not entry or not entry.get('epa_bytes'):
+    direction = entry.get('direction', 'uniec3_to_vabi') if entry else 'uniec3_to_vabi'
+    result_key = 'uniec3_bytes' if direction == 'vabi_to_uniec3' else 'epa_bytes'
+    if not entry or not entry.get(result_key):
         flash('Sessie verlopen. Neem contact op als je het bestand niet hebt ontvangen.', 'error')
         return redirect(url_for('index'))
     return render_template('success.html',
                            file_id=file_id,
                            filename=entry['filename'],
                            count=entry['count'],
+                           direction=direction,
                            is_free=_is_free(entry['count']))
 
 
@@ -487,6 +537,20 @@ def download_epa(file_id):
     buf.seek(0)
     return send_file(buf, mimetype='application/zip',
                      as_attachment=True, download_name=f'{stem}.epa')
+
+
+@app.route('/download-uniec3/<file_id>')
+def download_uniec3(file_id):
+    with _lock:
+        entry = _store.get(file_id)
+    if not entry or not entry.get('uniec3_bytes'):
+        flash('Download niet meer beschikbaar. Upload het bestand opnieuw.', 'error')
+        return redirect(url_for('index'))
+    stem = os.path.splitext(entry['filename'])[0][:60]
+    buf  = io.BytesIO(entry['uniec3_bytes'])
+    buf.seek(0)
+    return send_file(buf, mimetype='application/zip',
+                     as_attachment=True, download_name=f'{stem}.uniec3')
 
 
 @app.route('/download-invoice/<file_id>')
@@ -519,16 +583,22 @@ def admin():
 def _run_conversion(file_id: str, entry: dict) -> bool:
     """Voer de conversie uit en sla het resultaat op in _store.
     Geeft True terug bij succes, False bij fout. Geen redirect."""
+    direction = entry.get('direction', 'uniec3_to_vabi')
     try:
-        project_naam = os.path.splitext(entry['filename'])[0]
-        epa_bytes    = uniec3_convert(entry['bytes'], project_naam=project_naam)
+        stem = os.path.splitext(entry['filename'])[0]
+        if direction == 'vabi_to_uniec3':
+            result_bytes = vabi_convert(entry['bytes'], filename=stem)
+            result_key   = 'uniec3_bytes'
+        else:
+            result_bytes = uniec3_convert(entry['bytes'], project_naam=stem)
+            result_key   = 'epa_bytes'
     except Exception:
         return False
 
     with _lock:
         if file_id not in _store:
             return False
-        _store[file_id]['epa_bytes'] = epa_bytes
+        _store[file_id][result_key] = result_bytes
         if not _is_free(entry['count']):
             _invoices.append({
                 'nr':         _store[file_id].get('invoice_nr', ''),

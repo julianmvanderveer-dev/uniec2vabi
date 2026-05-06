@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Uniec2Vabi — Converteer .uniec3 naar VABI{% endblock %}
+{% block title %}Uniec2Vabi — Converteer .uniec3 ↔ VABI{% endblock %}
 
 {% block content %}
 
@@ -23,18 +23,17 @@
 
 <!-- Hero -->
 <div class="text-center mb-8">
-  <h1 class="text-3xl font-bold text-slate-800 mb-2">Uniec3 → VABI EPA</h1>
+  <h1 class="text-3xl font-bold text-slate-800 mb-2">Uniec3 ↔ VABI EPA</h1>
   <p class="text-slate-500 max-w-md mx-auto">
-    Upload een <code class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">.uniec3</code> bestand.
-    Na betaling ontvang je direct een
-    <code class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">.epa</code> bestand
-    dat je rechtstreeks in VABI kunt openen.
+    Upload een <code class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">.uniec3</code> of
+    <code class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">.epa</code> bestand —
+    we detecteren de richting automatisch.
   </p>
 </div>
 
 <!-- Upload zone -->
 <form id="upload-form" action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data">
-  <input id="file-input" type="file" name="file" accept=".uniec3" class="hidden">
+  <input id="file-input" type="file" name="file" accept=".uniec3,.epa" class="hidden">
 
   <div id="drop-zone"
        class="border-2 border-dashed border-brynt-300 rounded-2xl bg-white hover:bg-brynt-50
@@ -52,7 +51,7 @@
     </svg>
 
     <div>
-      <p id="zone-label" class="text-base font-medium text-slate-700">Sleep je .uniec3 bestand hier</p>
+      <p id="zone-label" class="text-base font-medium text-slate-700">Sleep je .uniec3 of .epa bestand hier</p>
       <p class="text-sm text-slate-400 mt-1">of klik om te bladeren</p>
     </div>
   </div>
@@ -125,8 +124,9 @@
   });
 
   function submit(file) {
-    if (!file.name.toLowerCase().endsWith('.uniec3')) {
-      alert('Selecteer een geldig .uniec3 bestand.');
+    const n = file.name.toLowerCase();
+    if (!n.endsWith('.uniec3') && !n.endsWith('.epa')) {
+      alert('Selecteer een geldig .uniec3 of .epa bestand.');
       return;
     }
     label.textContent = `${file.name} — bezig met verwerken...`;
