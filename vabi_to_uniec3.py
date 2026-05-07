@@ -82,6 +82,248 @@ REGELING_TO_VERLREG = {
 }
 
 
+# ─── SCHEMA VERSIE-IDs (afkomstig uit werkende Uniec3 bestanden) ──────────────
+
+ENTITY_VERSIONS = {
+    'AFMELDINFO': 7104, 'AFMELDOBJECT': 7105, 'AFMELDLOCATIE': 7106,
+    'BASIS': 7142, 'BEGR': 40, 'BEGR-FORM': 2124, 'BELEMMERING': 38,
+    'CLIMATE': 7155, 'CONSTRD': 65, 'CONSTRERROR': 97, 'CONSTRKENMV': 71,
+    'CONSTRKENMW': 70, 'CONSTRKRVENT': 87, 'CONSTRL': 67, 'CONSTRT': 66,
+    'CONSTRWG': 69, 'CONSTRWWGVL': 88, 'CONSTRWWKLDR': 89, 'CONSTRZOMNAC': 90,
+    'GEB': 5, 'GEB-EXTRA': 7163, 'GRUIMTE': 36, 'INFIL': 6, 'INFILUNIT': 42,
+    'INSTALLATIE': 8, 'INSTALLATIONS-FORM': 4127,
+    'KOEL': 25, 'KOEL-AFG': 85, 'KOEL-AFG-VENT': 86,
+    'KOEL-DISTR': 81, 'KOEL-DISTR-BIN': 82, 'KOEL-DISTR-BUI': 83,
+    'KOEL-DISTR-EIG': 84, 'KOEL-DISTR-POMP': 3125, 'KOEL-OPWEK': 80,
+    'LIBCONSTRD': 60, 'LIBCONSTRFORM': 64, 'LIBCONSTRL': 62, 'LIBCONSTRT': 61,
+    'LUCHTZOMNAC': 59, 'NGEBGEB-E': 7160,
+    'PRESTATIE': 106, 'RZ': 13, 'RZFORM': 33, 'SETTINGS': 2109,
+    'TAPW': 23, 'TAPW-AFG': 98, 'TAPW-DISTR': 99,
+    'TAPW-DISTR-BIN': 100, 'TAPW-DISTR-BUI': 101, 'TAPW-DISTR-EIG': 102,
+    'TAPW-DISTR-POMP': 3126, 'TAPW-OPWEK': 103, 'TAPW-UNIT-RZ': 111,
+    'TAPW-VAT': 104,
+    'UNIT': 29, 'UNIT-RZ': 30, 'UNIT-RZ-GF': 34,
+    'VENT': 26, 'VENT-VERB': 1108, 'VENTAAN': 45, 'VENTCAP': 57,
+    'VENTDEB': 56, 'VENTDIS': 58, 'VENTILATOR': 52, 'VENTILATOREIG': 53,
+    'VENTZBR': 7122, 'VERL': 28, 'VERLZONE': 96,
+    'VERW': 22, 'VERW-AFG': 78, 'VERW-AFG-VENT': 79,
+    'VERW-DISTR': 74, 'VERW-DISTR-BIN': 75, 'VERW-DISTR-BUI': 76,
+    'VERW-DISTR-EIG': 77, 'VERW-DISTR-POMP': 2125, 'VERW-OPWEK': 73,
+    'VERW-VAT': 105,
+    'VLEIDING': 43, 'VLEIDINGL': 44, 'VOORWARM': 48,
+    'WARMTE-TOEV-KAN': 2108, 'WARMTETERUG': 46,
+    # Resultaat-entiteiten (vereist door Uniec3 om te openen)
+    'MWA-RESULTS': 7144, 'NTA-RESULTS': 7143,
+    'RESULT-ENERGIEFUNCTIE': 2111, 'RESULT-ENERGIEGEBRUIK': 4128,
+    'RESULT-GTO': 4130, 'RESULT-LSTRM': 7161, 'RESULT-TOJULI': 4129,
+}
+
+PROP_VERSIONS = {
+    'AFMELDINFO': {'AFM_AANLEIDING': 17400, 'AFM_ADVISEUR': 17402,
+                   'AFM_IDENTIFICATIEMETHODE': 17405, 'AFM_NAAM_ORIGINEEL': 17427,
+                   'AFM_PROJECTNAAM': 17407, 'AFM_REGISTRATIE_ENERL': 17431,
+                   'AFM_REPRESENTATIVITEIT': 17408, 'AFM_STATUS': 17409},
+    'AFMELDOBJECT': {'AFMOBJ_ACTIE': 17415, 'AFMOBJ_CREDITS': 17414,
+                     'AFMOBJ_ERRORS': 17420, 'AFMOBJ_REG_DATUM': 17413,
+                     'AFMOBJ_REG_NUMMER': 17418, 'AFMOBJ_STATUS': 17412},
+    'AFMELDLOCATIE': {'AFMLOC_BAG_ID': 17421, 'AFMLOC_HUISNR': 17423,
+                      'AFMLOC_OMSCHR': 17411, 'AFMLOC_OPNAMEDATUM': 17410,
+                      'AFMLOC_PLAATS': 17433, 'AFMLOC_POSTCODE': 17422,
+                      'AFMLOC_REPRESENTATIEF': 17416, 'AFMLOC_STRAAT': 17432},
+    'BASIS':    {'BASIS_DUMMY': 17666},
+    'MWA-RESULTS': {'MWA-RESULTS_DUMMY': 17668},
+    'NTA-RESULTS': {'NTA-RESULTS_DUMMY': 17667},
+    'RESULT-ENERGIEFUNCTIE': {
+        'RESULT-ENERGIEFUNCTIE_CAT': 17303, 'RESULT-ENERGIEFUNCTIE_CODE': 7236,
+        'RESULT-ENERGIEFUNCTIE_EENHEID': 6238, 'RESULT-ENERGIEFUNCTIE_GROOTHEID': 6236,
+        'RESULT-ENERGIEFUNCTIE_NAAM': 6235, 'RESULT-ENERGIEFUNCTIE_RESULTAAT': 6237,
+        'RESULT-ENERGIEFUNCTIE_RES_ENER_NONPRIM': 17304,
+        'RESULT-ENERGIEFUNCTIE_RES_ENER_PRIM': 17305,
+        'RESULT-ENERGIEFUNCTIE_RES_HULPENER_NONPRIM': 17306,
+        'RESULT-ENERGIEFUNCTIE_RES_HULPENER_PRIM': 17307,
+    },
+    'RESULT-ENERGIEGEBRUIK': {
+        'RESULT-BOIM_GEBGEB': 17320, 'RESULT-CO2_CO2': 17324,
+        'RESULT-ELEKTR_GEBGEB': 17314, 'RESULT-ELEKTR_NIETGEBGEB': 17315,
+        'RESULT-ELEKTR_OPGEWEKT': 17316, 'RESULT-ELEKTR_TOT': 17328,
+        'RESULT-EP_HERNIEUWBARE_ENERGIE_INDICATOR': 17358,
+        'RESULT-EP_HERNIEUWBARE_ENERGIE_INDICATOR_EMG_FORF': 17359,
+        'RESULT-EP_WARMTEBEHOEFTE': 17325,
+        'RESULT-EWEK_EK': 17319, 'RESULT-EWEK_EW': 17318,
+        'RESULT-GAS_GEBGEB': 17317, 'RESULT-HERNIEUW_ELEKTR': 17313,
+        'RESULT-HERNIEUW_KOEL': 17312, 'RESULT-HERNIEUW_TAPW': 17311,
+        'RESULT-HERNIEUW_TOT': 17327, 'RESULT-HERNIEUW_TOT_EMGFORF': 17861,
+        'RESULT-HERNIEUW_VERW': 17310, 'RESULT-KARAKT_TOT': 17309,
+        'RESULT-KOSTEN_ELEKTR': 17819, 'RESULT-NETTO_WARMTEVRAAG': 17365,
+        'RESULT-OLIE_TOT': 17826, 'RESULT-OPP_GEBROPP': 17321,
+        'RESULT-OPP_VERLOPP': 17322, 'RESULT-OPP_VORMFACTOR': 17323,
+        'RESULT_KARAKT_OPGEW_E': 17308, 'RESULT_KARAKT_SOM_EPEH': 17326,
+    },
+    'RESULT-GTO': {
+        'RESULT-GTO_FCTRL': 17339, 'RESULT-GTO_SPUIVENT_QVARGLIN': 17340,
+        'RESULT-GTO_SPUIVENT_QVARGLOUT': 17341, 'RESULT-GTO_ZNVENT_QVARGLLIN': 17342,
+        'RESULT-GTO_ZNVENT_QVARGLLOUT': 17343,
+    },
+    'RESULT-LSTRM': {
+        'RESULT-LSTRM_LEAINZIMI': 17812, 'RESULT-LSTRM_SUPZIMI': 17814,
+        'RESULT-LSTRM_VENTINZIMI': 17813,
+    },
+    'RESULT-TOJULI': {
+        'RESULT-TOJULI_AANW_AANV_BER': 17798, 'RESULT-TOJULI_BEP_ZON': 17790,
+        'RESULT-TOJULI_KOELCAP': 17791, 'RESULT-TOJULI_MAX': 17338,
+        'RESULT-TOJULI_NOORD': 17330, 'RESULT-TOJULI_NOORD_OOST': 17331,
+        'RESULT-TOJULI_NOORD_WEST': 17337, 'RESULT-TOJULI_OOST': 17332,
+        'RESULT-TOJULI_RAAMFACTOR': 17818, 'RESULT-TOJULI_WEINIG_RAMEN': 17789,
+        'RESULT-TOJULI_WEST': 17336, 'RESULT-TOJULI_ZUID': 17334,
+        'RESULT-TOJULI_ZUID_OOST': 17333, 'RESULT-TOJULI_ZUID_WEST': 17335,
+        'RESULT_TOJULI_RISICO': 17799, 'RESULT_TOJULI_TYPE_KOEL': 17807,
+    },
+    'BEGR':     {'BEGR_A': 775, 'BEGR_AOR': 776, 'BEGR_AOS': 777, 'BEGR_B': 778,
+                 'BEGR_DAK': 779, 'BEGR_DUMMY': 5196, 'BEGR_GEVEL': 780,
+                 'BEGR_HEL': 781, 'BEGR_KWAND': 783, 'BEGR_L': 784,
+                 'BEGR_OMSCHR': 785, 'BEGR_OPM': 17460, 'BEGR_VLAK': 787,
+                 'BEGR_VLOER': 788, 'BEGR_VLOER_BOVBUI': 17398, 'BEGR_VL_OMV': 786},
+    'BEGR-FORM': {'BEGR-FORM_OPEN': 11251, 'BEGR-FORM_OPM': 17519},
+    'BELEMMERING': {'BELEMM_CONST_BELEM': 17522, 'BELEMM_HOR_A_LINKS': 798,
+                    'BELEMM_HOR_A_RECHTS': 800, 'BELEMM_HOR_B_LINKS': 801,
+                    'BELEMM_HOR_B_RECHTS': 802, 'BELEMM_ZIJ_LINKS': 17525,
+                    'BELEMM_ZIJ_RECHTS': 17526},
+    'CLIMATE':  {'CLIMATE_HEAT_ISLAND': 17726, 'CLIMATE_KNMI_INV': 17723,
+                 'CLIMATE_KNMI_STATION': 17725, 'CLIMATE_POSTCODE': 17724},
+    'CONSTRD':  {'CONSTRD_B': 17462, 'CONSTRD_L': 17461, 'CONSTRD_LIB': 1059,
+                 'CONSTRD_OPM': 7245, 'CONSTRD_OPP': 1060},
+    'CONSTRERROR': {'CONSTRERROR_LINCONSTR': 17349, 'CONSTRERROR_OPEN': 11252,
+                    'CONSTRERROR_OPM': 17520},
+    'CONSTRKENMV': {'KENMV_OMTR_VL': 1078, 'KENMV_OPM': 17439},
+    'CONSTRKENMW': {'KENMW_AFSTMV_VL': 1076, 'KENMW_OPM': 17438},
+    'CONSTRKRVENT': {'KENMKR_OPM': 17457, 'KENMKR_VENT': 1079},
+    'CONSTRL':  {'CONSTRL_LEN': 1071, 'CONSTRL_LIB': 1070, 'CONSTRL_OPM': 7248},
+    'CONSTRT':  {'CONSTRT_AANT': 1062, 'CONSTRT_B': 17464, 'CONSTRT_BESCH': 1064,
+                 'CONSTRT_GGL_ALT': 1066, 'CONSTRT_GGL_DIF': 1067,
+                 'CONSTRT_L': 17463, 'CONSTRT_LIB': 1061, 'CONSTRT_OPM': 7246,
+                 'CONSTRT_OPP': 1063, 'CONSTRT_REGEL': 1068,
+                 'CONSTRT_ZNVENT': 1069, 'CONSTRT_ZONW': 1065},
+    'CONSTRWG': {'CONSTRWG_B': 17466, 'CONSTRWG_L': 17465, 'CONSTRWG_LIB': 1074,
+                 'CONSTRWG_OPM': 7247, 'CONSTRWG_OPP': 1075},
+    'CONSTRWWGVL': {'KENMKR_WW_GVL': 1080, 'KENMKR_WW_GVL_OPM': 17458},
+    'CONSTRWWKLDR': {'KENMKR_WW_KR': 1081, 'KENMKR_WW_KR_OPM': 17459},
+    'CONSTRZOMNAC': {'CONSTRZOMNAC_BRDOORLV': 2064, 'CONSTRZOMNAC_DOORLF': 1238,
+                     'CONSTRZOMNAC_DOORLV': 1239, 'CONSTRZOMNAC_HDOORL': 1237,
+                     'CONSTRZOMNAC_HOPEN': 1236, 'CONSTRZOMNAC_OHOEKV': 1240},
+    'GEB':      {'GEB_BWJR': 821, 'GEB_CALCNEEDED': 17357, 'GEB_DATE': 822,
+                 'GEB_EIGEND': 823, 'GEB_HASMELD': 17350, 'GEB_OMSCHR': 824,
+                 'GEB_OPEN': 11248, 'GEB_OPLVJR': 825, 'GEB_OPN': 827,
+                 'GEB_PL': 828, 'GEB_RENOVJR': 829, 'GEB_SRTBW': 830,
+                 'GEB_TYPEGEB': 831},
+    'GEB-EXTRA': {'GEB-EXTRA_ADRS_GEB': 17824, 'GEB-EXTRA_OMSCHR_GEB': 17825},
+    'GRUIMTE':  {'GRUIMTE_AG': 834, 'GRUIMTE_AV_INVOER': 17521,
+                 'GRUIMTE_OMSCHR': 835, 'GRUIMTE_UNITID': 836},
+    'INFIL':    {'INFIL_BGH': 952, 'INFIL_INVOER': 953, 'INFIL_OPEN': 11253,
+                 'INFIL_VERV_METHODE': 17605},
+    'INFILUNIT': {'INFILUNIT_BGH': 17435, 'INFILUNIT_QV': 954,
+                  'INFILUNIT_QV_DEFAULT': 17291, 'INFILUNIT_QV_NON': 1171},
+    'INSTALLATIE': {'INSTALL_AANTAL': 3192, 'INSTALL_NAAM': 17430,
+                    'INSTALL_OMSCHR': 838, 'INSTALL_TYPE': 839},
+    'INSTALLATIONS-FORM': {'INSTALLATIONS-FORM_DUMMY': 14286},
+    'KOEL':     {'KOEL_OPEN': 3183, 'KOEL_OPM': 17443, 'KOEL_XXXX': 840},
+    'KOEL-AFG': {'KOEL-AFG_TYPE_AFG': 1224, 'KOEL-AFG_TYPE_RUIM': 1226},
+    'KOEL-AFG-VENT': {'KOEL-AFG-VENT_INV': 1232},
+    'KOEL-DISTR': {'KOEL-DISTR_AAN_LAGEN': 1221, 'KOEL-DISTR_ONTW': 1212,
+                   'KOEL-DISTR_POMP_INV': 1216, 'KOEL-DISTR_VERDAMP': 1211,
+                   'KOEL-DISTR_WAT': 1213},
+    'KOEL-DISTR-BUI': {'KOEL-DISTR-BUI_INV': 1206, 'KOEL-DISTR-BUI_ISO_LEI': 1209},
+    'KOEL-DISTR-EIG': {'KOEL-DISTR-EIG_DEK': 1196, 'KOEL-DISTR-EIG_LAB_CON': 1197,
+                       'KOEL-DISTR-EIG_LAB_ISO': 1198, 'KOEL-DISTR-EIG_RUIMTE': 1193},
+    'KOEL-DISTR-POMP': {'KOEL-DISTR_POMP_OMSCHR': 12264},
+    'KOEL-OPWEK': {'KOEL-OPWEK_FABR': 1177, 'KOEL-OPWEK_GEM': 1235,
+                   'KOEL-OPWEK_INVOER': 1173, 'KOEL-OPWEK_TYPE': 1172},
+    'LUCHTZOMNAC': {'LUCHTZOMNAC_BED': 1039},
+    'NGEBGEB-E': {'NGEBGEB-E_INVOER': 17802, 'NGEBGEB-E_MAX': 17806,
+                  'NGEBGEB-E_METHODE': 17801, 'NGEBGEB-E_MIN': 17805,
+                  'NGEBGEB-E_OPEN': 17808, 'NGEBGEB-E_PER_M2': 17804,
+                  'NGEBGEB-E_VAST': 17803},
+    'LIBCONSTRD': {'LIBCONSTRD_BEPALING': 12282, 'LIBCONSTRD_DIKTE_ISO': 12283,
+                   'LIBCONSTRD_DIKTE_RIET': 12284, 'LIBCONSTRD_METH': 1041,
+                   'LIBCONSTRD_OMSCHR': 1042, 'LIBCONSTRD_RC': 1043,
+                   'LIBCONSTRD_TYPE': 1044},
+    'LIBCONSTRFORM': {'LIBCONSTRFORM_KOZ': 1045, 'LIBCONSTRFORM_OPEN': 11262},
+    'LIBCONSTRL': {'LIBCONSTRL_BEPALING': 17290, 'LIBCONSTRL_METH': 1046,
+                   'LIBCONSTRL_OMSCHR': 1047, 'LIBCONSTRL_POS': 1048,
+                   'LIBCONSTRL_PSI': 1049},
+    'LIBCONSTRT': {'LIBCONSTRT_AC': 1050, 'LIBCONSTRT_BEPALING': 13284,
+                   'LIBCONSTRT_G': 1051, 'LIBCONSTRT_KOZ': 13283,
+                   'LIBCONSTRT_METH': 1052, 'LIBCONSTRT_OMSCHR': 1053,
+                   'LIBCONSTRT_TYPE': 1054, 'LIBCONSTRT_U': 1055},
+    'PRESTATIE': {'EP_BENG1': 3175, 'EP_BENG2': 3176, 'EP_BENG3': 3177,
+                  'EP_ENERGIELABEL': 15287},
+    'RZ':       {'RZ_BOUWLG': 867, 'RZ_BOUWW_VL': 17527, 'RZ_BOUWW_W': 17528,
+                 'RZ_CM': 869, 'RZ_OMSCHR': 870, 'RZ_TYPEPLFND': 871,
+                 'RZ_TYPEZ': 872},
+    'RZFORM':   {'RZFORM_CALCUNIT': 874, 'RZFORM_OPEN': 11250},
+    'SETTINGS': {'SETTINGS_MAATADVIES': 17557, 'SETTINGS_THBRUG': 5197,
+                 'SETTINGS_VARIANTEN': 17556},
+    'TAPW':     {'TAPW_OPEN': 11255, 'TAPW_OPM': 17442, 'TAPW_XXXX': 930},
+    'TAPW-AFG': {'TAPW-AFG_LEI_AANR': 3158},
+    'TAPW-DISTR': {'TAPW-DISTR_CIRC': 3121, 'TAPW-DISTR_ZONE': 3122},
+    'TAPW-DISTR-BIN': {'TAPW-DISTR-BIN_INV': 3137},
+    'TAPW-DISTR-BUI': {'TAPW-DISTR-BUI_INV': 3144},
+    'TAPW-DISTR-EIG': {'TAPW-DISTR-EIG_DEK': 3153, 'TAPW-DISTR-EIG_LAB_CON': 3154,
+                       'TAPW-DISTR-EIG_LAB_ISO': 3155, 'TAPW-DISTR-EIG_RUIMTE': 3150},
+    'TAPW-DISTR-POMP': {'TAPW-DISTR_POMP_OMSCHR': 12269},
+    'TAPW-OPWEK': {'TAPW-OPWEK_GEM': 3068, 'TAPW-OPWEK_INV': 3066,
+                   'TAPW-OPWEK_TYPE': 3064},
+    'TAPW-UNIT-RZ': {'TAPW-UNIT-RZ_OPP': 3190, 'TAPW-UNIT-RZ_OPPMAX': 7244},
+    'TAPW-VAT': {'TAPW-VAT_AANT': 3119, 'TAPW-VAT_INV': 3108},
+    'UNIT':     {'UNIT_AANTA': 935, 'UNIT_AANTU': 936, 'UNIT_OMSCHR': 937,
+                 'UNIT_TYPEGEB': 939},
+    'UNIT-RZ':  {'UNIT-RZBLAAG': 943, 'UNIT-RZCM': 17434, 'UNIT-RZID': 946},
+    'UNIT-RZ-GF': {'UNIT-RZ-GFAG': 944, 'UNIT-RZ-GFID': 945},
+    'VENT':     {'VENT_OPEN': 11256, 'VENT_OPM': 17444},
+    'VENT-VERB': {'VENT-VERB_OMSCHR': 4187},
+    'VENTAAN':  {'VENTAAN_FCTRL': 975, 'VENTAAN_INVOER': 972, 'VENTAAN_SYS': 970,
+                 'VENTAAN_SYSVAR': 973, 'VENTAAN_VARIANT': 1242,
+                 'VENTAAN_VERB': 971, 'VENTAAN_VERBL': 4194},
+    'VENTCAP':  {'VENTCAP_MD': 1025, 'VENTCAP_MV': 1026, 'VENTCAP_NAOS': 1024,
+                 'VENTCAP_ND': 1022, 'VENTCAP_NV': 1023},
+    'VENTDEB':  {'VENTDEB_CAP': 1020, 'VENTDEB_CAPTAB': 1021},
+    'VENTDIS':  {'VENTDIS_C': 1030, 'VENTDIS_CKOEL': 1032, 'VENTDIS_CVERW': 1031,
+                 'VENTDIS_DICHT': 1029, 'VENTDIS_LBK': 1033},
+    'VENTILATOR': {},
+    'VENTILATOREIG': {},
+    'VENTZBR':  {'VENTZBR_AANW': 17532, 'VENTZBR_AG': 17533},
+    'VERL':     {'VERL_DAGLREG': 2019, 'VERL_OPEN': 11257,
+                 'VERL_PARVERM_INV': 2018, 'VERL_VERM_INV': 2017},
+    'VERLZONE': {'VERLZ_A': 2024, 'VERLZ_DAGLREG': 17535, 'VERLZ_FD': 2033,
+                 'VERLZ_FD_NON': 17536, 'VERLZ_F_AFZ': 6234, 'VERLZ_KAG30': 17396,
+                 'VERLZ_OMSCHR': 2023, 'VERLZ_PN': 2025, 'VERLZ_VERLREG': 17395,
+                 'VERLZ_WL': 17347},
+    'VERW':     {'VERW_OPEN': 11254, 'VERW_OPM': 17441, 'VERW_XXXX': 949},
+    'VERW-AFG': {'VERW-AFG_TYPE_AFG': 1150, 'VERW-AFG_TYPE_RUIM': 1158,
+                 'VERW-AFG_VERT': 1151},
+    'VERW-AFG-VENT': {'VERW-AFG-VENT_INV': 1166, 'VERW-AFG-VENT_SRT': 1167},
+    'VERW-DISTR': {'VERW-DISTR_AANV_POMP': 11263, 'VERW-DISTR_AAN_LAGEN': 1146,
+                   'VERW-DISTR_ONTW': 1136, 'VERW-DISTR_POMP_INV': 1141,
+                   'VERW-DISTR_TYPE': 1135, 'VERW-DISTR_WAT': 1138},
+    'VERW-DISTR-BIN': {'VERW-DISTR-BIN_INV': 1124, 'VERW-DISTR-BIN_ISO_KLE': 1128,
+                       'VERW-DISTR-BIN_ISO_LEI': 1127, 'VERW-DISTR-BIN_LEN': 1126},
+    'VERW-DISTR-BUI': {'VERW-DISTR-BUI_INV': 1130, 'VERW-DISTR-BUI_ISO_KLE': 1134,
+                       'VERW-DISTR-BUI_ISO_LEI': 1133, 'VERW-DISTR-BUI_LEN': 1132},
+    'VERW-DISTR-EIG': {'VERW-DISTR-EIG_DEK': 1120, 'VERW-DISTR-EIG_LAB_CON': 1121,
+                       'VERW-DISTR-EIG_LAB_ISO': 1122, 'VERW-DISTR-EIG_RUIMTE': 1117},
+    'VERW-DISTR-POMP': {'VERW-DISTR_POMP_OMSCHR': 11266},
+    'VERW-OPWEK': {'VERW-OPWEK_FABR': 1096, 'VERW-OPWEK_FUNCTIE': 1170,
+                   'VERW-OPWEK_GEM': 1244, 'VERW-OPWEK_INVOER': 1083,
+                   'VERW-OPWEK_POMP': 1088, 'VERW-OPWEK_TOE_AAN': 1104,
+                   'VERW-OPWEK_TYPE': 1082},
+    'VERW-VAT': {'VERW-VAT_AANT': 3119},
+    'VLEIDING': {'VLEIDING_INVOER': 956, 'VLEIDING_TOI': 1040},
+    'VLEIDINGL': {'VLEIDINGL_AAN': 957, 'VLEIDINGL_ARZ': 960, 'VLEIDINGL_ISO': 958},
+    'VOORWARM': {'VOORWARM_AAN': 988},
+    'WARMTE-TOEV-KAN': {},
+    'WARMTETERUG': {},
+}
+
+
 # ─── HULPFUNCTIES ─────────────────────────────────────────────────────────────
 
 def _guid():
@@ -128,28 +370,31 @@ _BUILD_ID = None  # wordt ingesteld in convert()
 
 
 def _entity(eid, etype, props, order=100.0):
-    """Maak een Uniec3 entity dict."""
+    """Maak een Uniec3 entity dict met correcte schema versie-IDs."""
+    entity_ver  = ENTITY_VERSIONS.get(etype, 100)
+    prop_ver_map = PROP_VERSIONS.get(etype, {})
+    ts = _now()
     prop_list = []
-    ver = 10000
     for prop_id, value in props.items():
+        pver = prop_ver_map.get(prop_id, 10000)
         entry = {
             'NTAPropertyId': prop_id,
-            'NTAPropertyVersionId': ver,
+            'NTAPropertyVersionId': pver,
             'NTAPropertyDataId': f'{eid}:{prop_id}',
             'Status': 2,
-            'Timestamp': _now(),
+            'Timestamp': ts,
         }
         if value != '':
             entry['Value'] = str(value)
         prop_list.append(entry)
-        ver += 1
     return {
         'NTAEntityId': etype,
-        'NTAEntityVersionId': 1000,
+        'NTAEntityVersionId': entity_ver,
         'Order': order,
         'BuildingId': _BUILD_ID,
         'NTAEntityDataId': eid,
         'Status': 2,
+        'Timestamp': ts,
         'NTAPropertyDatas': prop_list,
     }
 
@@ -438,6 +683,62 @@ def _build_entities(vabi):
         'GEB-EXTRA_OMSCHR_GEB': '',
     })
 
+    # ── AFMELDINFO (standalone, vereist door Uniec3) ───────────────────────────
+    afmeldinfo_id = _guid()
+    _add(entities, relations, afmeldinfo_id, 'AFMELDINFO', {
+        'AFM_AANLEIDING':        'AFM_AANL_AANVR',
+        'AFM_ADVISEUR':          'AFM_ADVISEUR_ZELFDE',
+        'AFM_IDENTIFICATIEMETHODE': 'IDENTM_ZONDER_BAG',
+        'AFM_NAAM_ORIGINEEL':    gebouw_naam,
+        'AFM_PROJECTNAAM':       '',
+        'AFM_REGISTRATIE_ENERL': 'AFM_LBL_GEB_GEHEEL',
+        'AFM_REPRESENTATIVITEIT': 'AFM_REPRES_NIET',
+        'AFM_STATUS':            '',
+    })
+
+    # ── AFMELDOBJECT → AFMELDLOCATIE (kind van GEB) ───────────────────────────
+    afmobj_id = _guid()
+    _add(entities, relations, afmobj_id, 'AFMELDOBJECT', {
+        'AFMOBJ_ACTIE':      'AFM_ACTIE_NIEUW',
+        'AFMOBJ_CREDITS':    '',
+        'AFMOBJ_ERRORS':     '',
+        'AFMOBJ_REG_DATUM':  '',
+        'AFMOBJ_REG_NUMMER': '',
+        'AFMOBJ_STATUS':     '0',
+    })
+    _link(relations, geb_id, 'GEB', afmobj_id, 'AFMELDOBJECT')
+
+    afmloc_id = _guid()
+    _add(entities, relations, afmloc_id, 'AFMELDLOCATIE', {
+        'AFMLOC_BAG_ID':        '',
+        'AFMLOC_HUISNR':        '',
+        'AFMLOC_OMSCHR':        gebouw_naam,
+        'AFMLOC_OPNAMEDATUM':   '',
+        'AFMLOC_PLAATS':        '',
+        'AFMLOC_POSTCODE':      '',
+        'AFMLOC_REPRESENTATIEF': 'false',
+        'AFMLOC_STRAAT':        '',
+    })
+    _link(relations, afmobj_id, 'AFMELDOBJECT', afmloc_id, 'AFMELDLOCATIE')
+
+    # ── LUCHTZOMNAC (standalone, vereist voor utiliteitsgebouwen) ─────────────
+    luchtzomnac_id = _guid()
+    _add(entities, relations, luchtzomnac_id, 'LUCHTZOMNAC', {
+        'LUCHTZOMNAC_BED': '',
+    })
+
+    # ── NGEBGEB-E (niet-gebouwgebonden energie, vereist) ──────────────────────
+    ngebgeb_id = _guid()
+    _add(entities, relations, ngebgeb_id, 'NGEBGEB-E', {
+        'NGEBGEB-E_INVOER':  'NGEBGEB-E_VAST',
+        'NGEBGEB-E_MAX':     '',
+        'NGEBGEB-E_METHODE': 'NGEBGEB-E_EIGEN_INVOER',
+        'NGEBGEB-E_MIN':     '',
+        'NGEBGEB-E_OPEN':    'false',
+        'NGEBGEB-E_PER_M2':  '',
+        'NGEBGEB-E_VAST':    '0',
+    })
+
     # ── INFIL ──────────────────────────────────────────────────────────────────
     infil_id = _guid()
     _add(entities, relations, infil_id, 'INFIL', {
@@ -471,6 +772,12 @@ def _build_entities(vabi):
         'LIBCONSTRL_PSI':      '',
     })
 
+    # Verzamel IDs voor RESULT-entiteiten die buiten de loop aangemaakt worden
+    all_unit_ids           = []
+    all_prestatie_unit_ids = []
+    all_rz_ids             = []
+    all_unit_rz_ids        = []
+
     # ── Per Object → UNIT ──────────────────────────────────────────────────────
     for obj_idx, obj in enumerate(vabi.get('objecten', [])):
         unit_id = _guid()
@@ -496,11 +803,15 @@ def _build_entities(vabi):
             'EP_ENERGIELABEL': '',
         })
         _link(relations, unit_id, 'UNIT', prestatie_unit_id, 'PRESTATIE')
+        all_unit_ids.append(unit_id)
+        all_prestatie_unit_ids.append(prestatie_unit_id)
 
         # ── Per Rekenzone ──────────────────────────────────────────────────────
         for rz_idx, rz in enumerate(obj.get('rekenzones', [])):
             rz_id    = _guid()
             unit_rz_id = _guid()
+            all_rz_ids.append(rz_id)
+            all_unit_rz_ids.append(unit_rz_id)
 
             ag = rz.get('ag', 0.0)
             gf_code = HOOFDFUNCTIE_TO_GF.get(rz['hoofdfunctie'], 'GF_BIJEENOVER')
@@ -576,7 +887,9 @@ def _build_entities(vabi):
             _link(relations, unit_rz_id, 'UNIT-RZ', unit_rz_begr_form_id, 'BEGR-FORM')
 
             # ── Verlichting (VERLZONE) ─────────────────────────────────────────
-            for vl in rz.get('verlichtingen', []):
+            verlichtingen = rz.get('verlichtingen', [])
+            first_vlzone_for_gruimte = None
+            for vl in verlichtingen:
                 vlzone_id = _guid()
                 vl_ag = (vl['pct_opp'] / 100.0) * ag if ag > 0 else 0.0
                 verlreg = REGELING_TO_VERLREG.get(vl['regeling'], 'VERLZ_VERLREG_CA')
@@ -589,11 +902,36 @@ def _build_entities(vabi):
                     'VERLZ_FD_NON':  '1,000',
                     'VERLZ_F_AFZ':   '0,00',
                     'VERLZ_KAG30':   kag30_val,
+                    'VERLZ_NWW':     'VERLZ_NWW_ONBEK',
                     'VERLZ_OMSCHR':  vl['naam'],
                     'VERLZ_PN':      _fmt(vl['vermogen']),
+                    'VERLZ_TYPE':    'VERLZ_TYPE_OVERIG',
                     'VERLZ_VERLREG': verlreg,
                     'VERLZ_WL':      '',
                 })
+                _link(relations, gruimte_id, 'GRUIMTE', vlzone_id, 'VERLZONE')
+                _link(relations, unit_rz_id, 'UNIT-RZ', vlzone_id, 'VERLZONE')
+                if first_vlzone_for_gruimte is None:
+                    first_vlzone_for_gruimte = vlzone_id
+
+            # Fallback: altijd minimaal 1 VERLZONE per rekenzone (vereist door Uniec3)
+            if not verlichtingen:
+                vlzone_id = _guid()
+                _add(entities, relations, vlzone_id, 'VERLZONE', {
+                    'VERLZ_A':       _fmt(ag),
+                    'VERLZ_DAGLREG': '',
+                    'VERLZ_FD':      '',
+                    'VERLZ_FD_NON':  '1,000',
+                    'VERLZ_F_AFZ':   '0,00',
+                    'VERLZ_KAG30':   'VERLZ_KAG_KANT_NVT',
+                    'VERLZ_NWW':     'VERLZ_NWW_ONBEK',
+                    'VERLZ_OMSCHR':  rz.get('naam', 'VZ'),
+                    'VERLZ_PN':      '',
+                    'VERLZ_TYPE':    'VERLZ_TYPE_OVERIG',
+                    'VERLZ_VERLREG': 'VERLZ_VERLREG_CA',
+                    'VERLZ_WL':      '',
+                })
+                _link(relations, gruimte_id, 'GRUIMTE', vlzone_id, 'VERLZONE')
                 _link(relations, unit_rz_id, 'UNIT-RZ', vlzone_id, 'VERLZONE')
 
             # ── Geometrie (BEGR) ───────────────────────────────────────────────
@@ -754,7 +1092,6 @@ def _build_entities(vabi):
                     _add(entities, relations, zomnac_id, 'CONSTRZOMNAC', {
                         'CONSTRZOMNAC_DOORLF':  '0,30',
                         'CONSTRZOMNAC_DOORLV':  '',
-                        'CONSTRZOMNAC_INV':     '',
                     })
                     _link(relations, constrt_id, 'CONSTRT', zomnac_id, 'CONSTRZOMNAC')
 
@@ -775,7 +1112,7 @@ def _build_entities(vabi):
             # ── TAPW-UNIT-RZ ───────────────────────────────────────────────────
             tapw_unit_rz_id = _guid()
             _add(entities, relations, tapw_unit_rz_id, 'TAPW-UNIT-RZ', {
-                'TAPW-UNIT-RZ_ID': unit_rz_id,
+                'TAPW-UNIT-RZ_OPP': _fmt(rz.get('ag', 0.0)),
             })
             _link(relations, unit_rz_id, 'UNIT-RZ', tapw_unit_rz_id, 'TAPW-UNIT-RZ')
 
@@ -795,7 +1132,206 @@ def _build_entities(vabi):
     })
     _link(relations, basis_id, 'BASIS', prestatie_geb_id, 'PRESTATIE')
 
+    # ── Resultaat-entiteiten (verplicht voor Uniec3) ────────────────────────────
+    _build_results(
+        entities, relations,
+        basis_id=basis_id,
+        geb_id=geb_id,
+        unit_ids=all_unit_ids,
+        prestatie_geb_id=prestatie_geb_id,
+        prestatie_unit_ids=all_prestatie_unit_ids,
+        rz_ids=all_rz_ids,
+        unit_rz_ids=all_unit_rz_ids,
+    )
+
     return entities, relations
+
+
+# De 22 vaste RESULT-ENERGIEFUNCTIE sjablonen (CAT, CODE, NAAM, EENHEID, GROOTHEID)
+_RESULT_EF_TEMPLATES = [
+    ('RESULT_VERW', 'E',      'elektrisch',                    'kWh', 'E<sub>H;ci</sub>'),
+    ('RESULT_VERW', 'GAS',    'gas',                           'kWh', 'E<sub>H;ci</sub>'),
+    ('RESULT_VERW', 'OLIE',   'olie',                          'kWh', 'E<sub>H;ci</sub>'),
+    ('RESULT_VERW', 'BIOM1',  'biomassa - Activiteitenbesluit', 'kWh', 'E<sub>H;ci</sub>'),
+    ('RESULT_VERW', 'BIOM2',  'biomassa - NTA 8800 bijlage R', 'kWh', 'E<sub>H;ci</sub>'),
+    ('RESULT_VERW', 'BIOM3',  'biomassa - overig',             'kWh', 'E<sub>H;ci</sub>'),
+    ('RESULT_VERW', 'EW_VERW','externe warmtelevering',        'kWh', 'E<sub>H;ci</sub>'),
+    ('RESULT_TAPW', 'E',      'elektrisch',                    'kWh', 'E<sub>W;ci</sub>'),
+    ('RESULT_TAPW', 'GAS',    'gas',                           'kWh', 'E<sub>W;ci</sub>'),
+    ('RESULT_TAPW', 'OLIE',   'olie',                          'kWh', 'E<sub>W;ci</sub>'),
+    ('RESULT_TAPW', 'BIOM1',  'biomassa - Activiteitenbesluit', 'kWh', 'E<sub>W;ci</sub>'),
+    ('RESULT_TAPW', 'BIOM2',  'biomassa - NTA 8800 bijlage R', 'kWh', 'E<sub>W;ci</sub>'),
+    ('RESULT_TAPW', 'BIOM3',  'biomassa - overig',             'kWh', 'E<sub>W;ci</sub>'),
+    ('RESULT_TAPW', 'EW_TAPW','externe warmtelevering',        'kWh', 'E<sub>W;ci</sub>'),
+    ('RESULT_KOEL', 'E',      'elektrisch',                    'kWh', 'E<sub>C;ci</sub>'),
+    ('RESULT_KOEL', 'GAS',    'gas',                           'kWh', 'E<sub>C;ci</sub>'),
+    ('RESULT_KOEL', 'EW_KOEL','externe koudelevering',         'kWh', 'E<sub>C;ci</sub>'),
+    ('RESULT_VENT', '',       'ventilatoren',                  'kWh', 'E<sub>V;ci</sub>'),
+    ('RESULT_VERL', '',       'verlichting',                   'kWh', 'E<sub>L;ci</sub>'),
+    ('RESULT_BEVO', 'E',      'elektrisch',                    'kWh', 'E<sub>hum;ci</sub>'),
+    ('RESULT_BEVO', 'GAS',    'gas',                           'kWh', 'E<sub>hum;ci</sub>'),
+    ('RESULT_BEVO', 'OLIE',   'olie',                          'kWh', 'E<sub>hum;ci</sub>'),
+]
+
+
+def _build_results(entities, relations, basis_id, geb_id, unit_ids,
+                   prestatie_geb_id, prestatie_unit_ids, rz_ids, unit_rz_ids):
+    """
+    Maakt de verplichte resultaat-entiteiten aan die Uniec3 nodig heeft om een
+    bestand te kunnen openen:
+      - NTA-RESULTS + MWA-RESULTS (standalone)
+      - 44× RESULT-ENERGIEFUNCTIE (22 per GEB + 22 per UNIT)
+      - RESULT-ENERGIEGEBRUIK (1 per GEB + 1 per UNIT)
+      - RESULT-GTO / RESULT-LSTRM / RESULT-TOJULI (1 per RZ + 1 per UNIT-RZ)
+    """
+    # NTA-RESULTS + MWA-RESULTS (standalone, geen parent)
+    nta_id = _guid()
+    _add(entities, relations, nta_id, 'NTA-RESULTS', {'NTA-RESULTS_DUMMY': ''})
+    mwa_id = _guid()
+    _add(entities, relations, mwa_id, 'MWA-RESULTS', {'MWA-RESULTS_DUMMY': ''})
+
+    # NTA-RESULTS → PRESTATIE (gebouw + unit)
+    _link(relations, nta_id, 'NTA-RESULTS', prestatie_geb_id, 'PRESTATIE')
+    for pid in prestatie_unit_ids:
+        _link(relations, nta_id, 'NTA-RESULTS', pid, 'PRESTATIE')
+
+    def _make_ef(props):
+        eid = _guid()
+        _add(entities, relations, eid, 'RESULT-ENERGIEFUNCTIE', props)
+        return eid
+
+    ef_props_template = {
+        'RESULT-ENERGIEFUNCTIE_RESULTAAT':          '',
+        'RESULT-ENERGIEFUNCTIE_RES_ENER_NONPRIM':   '',
+        'RESULT-ENERGIEFUNCTIE_RES_ENER_PRIM':      '',
+        'RESULT-ENERGIEFUNCTIE_RES_HULPENER_NONPRIM': '',
+        'RESULT-ENERGIEFUNCTIE_RES_HULPENER_PRIM':  '',
+    }
+
+    # 22 RESULT-ENERGIEFUNCTIE onder GEB
+    geb_ef_ids = []
+    for cat, code, naam, eenheid, grootheid in _RESULT_EF_TEMPLATES:
+        props = dict(ef_props_template,
+                     **{'RESULT-ENERGIEFUNCTIE_CAT': cat,
+                        'RESULT-ENERGIEFUNCTIE_CODE': code,
+                        'RESULT-ENERGIEFUNCTIE_NAAM': naam,
+                        'RESULT-ENERGIEFUNCTIE_EENHEID': eenheid,
+                        'RESULT-ENERGIEFUNCTIE_GROOTHEID': grootheid})
+        eid = _make_ef(props)
+        geb_ef_ids.append(eid)
+        _link(relations, geb_id, 'GEB', eid, 'RESULT-ENERGIEFUNCTIE')
+        _link(relations, basis_id, 'BASIS', eid, 'RESULT-ENERGIEFUNCTIE')
+        _link(relations, nta_id, 'NTA-RESULTS', eid, 'RESULT-ENERGIEFUNCTIE')
+
+    # 22 RESULT-ENERGIEFUNCTIE per UNIT
+    for unit_id in unit_ids:
+        for cat, code, naam, eenheid, grootheid in _RESULT_EF_TEMPLATES:
+            props = dict(ef_props_template,
+                         **{'RESULT-ENERGIEFUNCTIE_CAT': cat,
+                            'RESULT-ENERGIEFUNCTIE_CODE': code,
+                            'RESULT-ENERGIEFUNCTIE_NAAM': naam,
+                            'RESULT-ENERGIEFUNCTIE_EENHEID': eenheid,
+                            'RESULT-ENERGIEFUNCTIE_GROOTHEID': grootheid})
+            eid = _make_ef(props)
+            _link(relations, unit_id, 'UNIT', eid, 'RESULT-ENERGIEFUNCTIE')
+            _link(relations, basis_id, 'BASIS', eid, 'RESULT-ENERGIEFUNCTIE')
+            _link(relations, nta_id, 'NTA-RESULTS', eid, 'RESULT-ENERGIEFUNCTIE')
+
+    # RESULT-ENERGIEGEBRUIK: 1 voor GEB + 1 per UNIT
+    def _empty_energiegebruik():
+        return {k: '' for k in [
+            'RESULT-BOIM_GEBGEB', 'RESULT-CO2_CO2', 'RESULT-ELEKTR_GEBGEB',
+            'RESULT-ELEKTR_NIETGEBGEB', 'RESULT-ELEKTR_OPGEWEKT', 'RESULT-ELEKTR_TOT',
+            'RESULT-EP_HERNIEUWBARE_ENERGIE_INDICATOR',
+            'RESULT-EP_HERNIEUWBARE_ENERGIE_INDICATOR_EMG_FORF',
+            'RESULT-EP_WARMTEBEHOEFTE', 'RESULT-EWEK_EK', 'RESULT-EWEK_EW',
+            'RESULT-GAS_GEBGEB', 'RESULT-HERNIEUW_ELEKTR', 'RESULT-HERNIEUW_KOEL',
+            'RESULT-HERNIEUW_TAPW', 'RESULT-HERNIEUW_TOT', 'RESULT-HERNIEUW_TOT_EMGFORF',
+            'RESULT-HERNIEUW_VERW', 'RESULT-KARAKT_TOT', 'RESULT-KOSTEN_ELEKTR',
+            'RESULT-NETTO_WARMTEVRAAG', 'RESULT-OLIE_TOT', 'RESULT-OPP_GEBROPP',
+            'RESULT-OPP_VERLOPP', 'RESULT-OPP_VORMFACTOR',
+            'RESULT_KARAKT_OPGEW_E', 'RESULT_KARAKT_SOM_EPEH',
+        ]}
+
+    eg_geb_id = _guid()
+    _add(entities, relations, eg_geb_id, 'RESULT-ENERGIEGEBRUIK', _empty_energiegebruik())
+    _link(relations, geb_id,    'GEB',         eg_geb_id, 'RESULT-ENERGIEGEBRUIK')
+    _link(relations, basis_id,  'BASIS',        eg_geb_id, 'RESULT-ENERGIEGEBRUIK')
+    _link(relations, nta_id, 'NTA-RESULTS', eg_geb_id, 'RESULT-ENERGIEGEBRUIK')
+
+    for unit_id in unit_ids:
+        eg_unit_id = _guid()
+        _add(entities, relations, eg_unit_id, 'RESULT-ENERGIEGEBRUIK', _empty_energiegebruik())
+        _link(relations, unit_id,  'UNIT',         eg_unit_id, 'RESULT-ENERGIEGEBRUIK')
+        _link(relations, basis_id, 'BASIS',         eg_unit_id, 'RESULT-ENERGIEGEBRUIK')
+        _link(relations, nta_id, 'NTA-RESULTS', eg_unit_id, 'RESULT-ENERGIEGEBRUIK')
+
+    # Per-RZ resultaten: RESULT-GTO, RESULT-LSTRM, RESULT-TOJULI
+    for rz_id, unit_rz_id in zip(rz_ids, unit_rz_ids):
+        # RESULT-GTO
+        gto_rz_id = _guid()
+        _add(entities, relations, gto_rz_id, 'RESULT-GTO', {k: '' for k in [
+            'RESULT-GTO_FCTRL', 'RESULT-GTO_SPUIVENT_QVARGLIN',
+            'RESULT-GTO_SPUIVENT_QVARGLOUT', 'RESULT-GTO_ZNVENT_QVARGLLIN',
+            'RESULT-GTO_ZNVENT_QVARGLLOUT',
+        ]})
+        _link(relations, rz_id,     'RZ',      gto_rz_id, 'RESULT-GTO')
+        _link(relations, basis_id,  'BASIS',    gto_rz_id, 'RESULT-GTO')
+        _link(relations, nta_id,  'NTA-RESULTS', gto_rz_id, 'RESULT-GTO')
+
+        gto_urz_id = _guid()
+        _add(entities, relations, gto_urz_id, 'RESULT-GTO', {k: '' for k in [
+            'RESULT-GTO_FCTRL', 'RESULT-GTO_SPUIVENT_QVARGLIN',
+            'RESULT-GTO_SPUIVENT_QVARGLOUT', 'RESULT-GTO_ZNVENT_QVARGLLIN',
+            'RESULT-GTO_ZNVENT_QVARGLLOUT',
+        ]})
+        _link(relations, unit_rz_id, 'UNIT-RZ', gto_urz_id, 'RESULT-GTO')
+        _link(relations, basis_id,   'BASIS',    gto_urz_id, 'RESULT-GTO')
+        _link(relations, nta_id,   'NTA-RESULTS', gto_urz_id, 'RESULT-GTO')
+
+        # RESULT-LSTRM (1 per RZ, 1 per UNIT-RZ)
+        lstrm_rz_id = _guid()
+        _add(entities, relations, lstrm_rz_id, 'RESULT-LSTRM', {k: '' for k in [
+            'RESULT-LSTRM_LEAINZIMI', 'RESULT-LSTRM_SUPZIMI', 'RESULT-LSTRM_VENTINZIMI',
+        ]})
+        _link(relations, rz_id,    'RZ',      lstrm_rz_id, 'RESULT-LSTRM')
+        _link(relations, basis_id, 'BASIS',    lstrm_rz_id, 'RESULT-LSTRM')
+        _link(relations, nta_id, 'NTA-RESULTS', lstrm_rz_id, 'RESULT-LSTRM')
+
+        lstrm_urz_id = _guid()
+        _add(entities, relations, lstrm_urz_id, 'RESULT-LSTRM', {k: '' for k in [
+            'RESULT-LSTRM_LEAINZIMI', 'RESULT-LSTRM_SUPZIMI', 'RESULT-LSTRM_VENTINZIMI',
+        ]})
+        _link(relations, unit_rz_id, 'UNIT-RZ', lstrm_urz_id, 'RESULT-LSTRM')
+        _link(relations, basis_id,   'BASIS',    lstrm_urz_id, 'RESULT-LSTRM')
+        _link(relations, nta_id,   'NTA-RESULTS', lstrm_urz_id, 'RESULT-LSTRM')
+
+        # RESULT-TOJULI
+        tojuli_rz_id = _guid()
+        _add(entities, relations, tojuli_rz_id, 'RESULT-TOJULI', {k: '' for k in [
+            'RESULT-TOJULI_AANW_AANV_BER', 'RESULT-TOJULI_BEP_ZON',
+            'RESULT-TOJULI_KOELCAP', 'RESULT-TOJULI_MAX', 'RESULT-TOJULI_NOORD',
+            'RESULT-TOJULI_NOORD_OOST', 'RESULT-TOJULI_NOORD_WEST', 'RESULT-TOJULI_OOST',
+            'RESULT-TOJULI_RAAMFACTOR', 'RESULT-TOJULI_WEINIG_RAMEN', 'RESULT-TOJULI_WEST',
+            'RESULT-TOJULI_ZUID', 'RESULT-TOJULI_ZUID_OOST', 'RESULT-TOJULI_ZUID_WEST',
+            'RESULT_TOJULI_RISICO', 'RESULT_TOJULI_TYPE_KOEL',
+        ]})
+        _link(relations, rz_id,    'RZ',      tojuli_rz_id, 'RESULT-TOJULI')
+        _link(relations, basis_id, 'BASIS',    tojuli_rz_id, 'RESULT-TOJULI')
+        _link(relations, nta_id, 'NTA-RESULTS', tojuli_rz_id, 'RESULT-TOJULI')
+
+        tojuli_urz_id = _guid()
+        _add(entities, relations, tojuli_urz_id, 'RESULT-TOJULI', {k: '' for k in [
+            'RESULT-TOJULI_AANW_AANV_BER', 'RESULT-TOJULI_BEP_ZON',
+            'RESULT-TOJULI_KOELCAP', 'RESULT-TOJULI_MAX', 'RESULT-TOJULI_NOORD',
+            'RESULT-TOJULI_NOORD_OOST', 'RESULT-TOJULI_NOORD_WEST', 'RESULT-TOJULI_OOST',
+            'RESULT-TOJULI_RAAMFACTOR', 'RESULT-TOJULI_WEINIG_RAMEN', 'RESULT-TOJULI_WEST',
+            'RESULT-TOJULI_ZUID', 'RESULT-TOJULI_ZUID_OOST', 'RESULT-TOJULI_ZUID_WEST',
+            'RESULT_TOJULI_RISICO', 'RESULT_TOJULI_TYPE_KOEL',
+        ]})
+        _link(relations, unit_rz_id, 'UNIT-RZ', tojuli_urz_id, 'RESULT-TOJULI')
+        _link(relations, basis_id,   'BASIS',    tojuli_urz_id, 'RESULT-TOJULI')
+        _link(relations, nta_id,   'NTA-RESULTS', tojuli_urz_id, 'RESULT-TOJULI')
 
 
 def _build_verw(entities, relations, unit_rz_id, rz_id):
@@ -810,9 +1346,9 @@ def _build_verw(entities, relations, unit_rz_id, rz_id):
 
     verw_id = _guid()
     _add(entities, relations, verw_id, 'VERW', {
-        'VERW_OPEN':     'true',
-        'VERW_OPM':      '',
-        'VERW_VAT_AANW': '',
+        'VERW_OPEN': 'true',
+        'VERW_OPM':  '',
+        'VERW_XXXX': '',
     })
     _link(relations, inst_id, 'INSTALLATIE', verw_id, 'VERW')
 
@@ -854,14 +1390,12 @@ def _build_verw(entities, relations, unit_rz_id, rz_id):
     # VERW-DISTR
     distr_id = _guid()
     _add(entities, relations, distr_id, 'VERW-DISTR', {
-        'VERW-DISTR_AANV_POMP':     'VERW-DISTR_AANV_POMP_WEL',
-        'VERW-DISTR_AAN_LAGEN':     '2',
-        'VERW-DISTR_ONTW':          'VERW-DISTR_ONTW_GE32_D',
-        'VERW-DISTR_POMP_INV':      'VERW-DISTR_POMP_INV_D',
-        'VERW-DISTR_REG_AANVTEMP':  'VERW-DISTR_REG_AANVTEMP_STOOKLIJN',
-        'VERW-DISTR_TYPE':          'VERW-DISTR_TYPE_C',
-        'VERW-DISTR_WAT':           'VERW-DISTR_WAT_W',
-        'VERW-DISTR_FUNCTIE_LEID':  'VERW-DISTR_FUNCTIE_LEID_VERW',
+        'VERW-DISTR_AANV_POMP': 'VERW-DISTR_AANV_POMP_WEL',
+        'VERW-DISTR_AAN_LAGEN': '2',
+        'VERW-DISTR_ONTW':      'VERW-DISTR_ONTW_GE32_D',
+        'VERW-DISTR_POMP_INV':  'VERW-DISTR_POMP_INV_D',
+        'VERW-DISTR_TYPE':      'VERW-DISTR_TYPE_C',
+        'VERW-DISTR_WAT':       'VERW-DISTR_WAT_W',
     })
     _link(relations, verw_id, 'VERW', distr_id, 'VERW-DISTR')
 
@@ -1015,13 +1549,10 @@ def _build_koel(entities, relations, unit_rz_id, rz_id):
     # KOEL-OPWEK
     opwek_id = _guid()
     _add(entities, relations, opwek_id, 'KOEL-OPWEK', {
-        'KOEL-OPWEK_FABR':    'KOEL-OPWEK_FABR_GR',
-        'KOEL-OPWEK_GEM':     'KOEL-OPWEK_GEM_NIET',
-        'KOEL-OPWEK_INVOER':  'VERW-OPWEK_INVOER_FORF',
-        'KOEL-OPWEK_TYPE':    'KOEL-OPWEK_TYPE_1',
-        'KOEL-OPWEK_WCCTRLEN': 'false',
-        'KOEL-OPWEK_WCGEN_INV_FORF': 'true',
-        'KOEL-OPWEK_FCGEN_INV_FORF': 'True',
+        'KOEL-OPWEK_FABR':   'KOEL-OPWEK_FABR_GR',
+        'KOEL-OPWEK_GEM':    'KOEL-OPWEK_GEM_NIET',
+        'KOEL-OPWEK_INVOER': 'KOEL-OPWEK_INVOER_FORF',
+        'KOEL-OPWEK_TYPE':   'KOEL-OPWEK_TYPE_1',
     })
     _link(relations, koel_id, 'KOEL', opwek_id, 'KOEL-OPWEK')
 
@@ -1047,10 +1578,9 @@ def _build_koel(entities, relations, unit_rz_id, rz_id):
     _add(entities, relations, distr_id, 'KOEL-DISTR', {
         'KOEL-DISTR_AAN_LAGEN': '2',
         'KOEL-DISTR_ONTW':      'KOEL-DISTR_ONTW_4',
-        'KOEL-DISTR_POMP_INV':  'VERW-DISTR_POMP_INV_D',
+        'KOEL-DISTR_POMP_INV':  'KOEL-DISTR_POMP_INV_D',
         'KOEL-DISTR_VERDAMP':   'KOEL-DISTR_VERDAMP_3',
         'KOEL-DISTR_WAT':       'KOEL-DISTR_WAT_6',
-        'KOEL-DISTR_WCAUX':     'false',
     })
     _link(relations, koel_id, 'KOEL', distr_id, 'KOEL-DISTR')
 
@@ -1171,7 +1701,7 @@ def _build_installations_form(entities, relations):
     """INSTALLATIONS-FORM (globaal)."""
     form_id = _guid()
     _add(entities, relations, form_id, 'INSTALLATIONS-FORM', {
-        'INSTALLATIONS-FORM_OPEN': 'true',
+        'INSTALLATIONS-FORM_DUMMY': '',
     })
 
 
@@ -1240,16 +1770,31 @@ def convert(epa_bytes, filename='import'):
             'NTAVersionId':  312,
             'Locked':        False,
             'Afgemeld':      False,
+            'Afmeldstatus':  0,
             'CreateDate':    _now(),
-            'ChangeDate':    _now(),
         }]
         z.writestr('buildings.json', json.dumps(buildings, ensure_ascii=False))
 
-        # entities.json + relations.json
+        # entities.json + relations.json + deltas.json + summary.json
         bid = _BUILD_ID
         z.writestr(f'buildings/{bid}/entities.json',
                    json.dumps(entities, ensure_ascii=False, indent=2))
         z.writestr(f'buildings/{bid}/relations.json',
                    json.dumps(relations, ensure_ascii=False, indent=2))
+        z.writestr(f'buildings/{bid}/deltas.json',
+                   json.dumps([], ensure_ascii=False))
+        # Minimale summary
+        geb_naam = vabi.get('naam', filename)
+        summary = {
+            'BuildingId':    _BUILD_ID,
+            'GEB_OMSCHR':    geb_naam,
+            'GEB_TYPEGEB':   'TGEB_UTILIT',
+            'GEB_SRTBW':     'NIEUWB',
+            'GEB_HASMELD':   'False',
+            'GEB_CALCNEEDED': 'false',
+            'RZFORM_CALCUNIT': 'RZUNIT_GEB',
+        }
+        z.writestr(f'buildings/{bid}/summary.json',
+                   json.dumps(summary, ensure_ascii=False))
 
     return buf.getvalue()
