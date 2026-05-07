@@ -285,7 +285,8 @@ PROP_VERSIONS = {
                  'VENTAAN_VERB': 971, 'VENTAAN_VERBL': 4194},
     'VENTCAP':  {'VENTCAP_MD': 1025, 'VENTCAP_MV': 1026, 'VENTCAP_NAOS': 1024,
                  'VENTCAP_ND': 1022, 'VENTCAP_NV': 1023},
-    'VENTDEB':  {'VENTDEB_CAP': 1020, 'VENTDEB_CAPTAB': 1021},
+    'VENTDEB':  {'VENTDEB_CAP': 1020, 'VENTDEB_CAPTAB': 1021,
+                 'VENTDEB_ZBR': 17531, 'VENTDEB_ZBRTAB': 17534},
     'VENTDIS':  {'VENTDIS_C': 1030, 'VENTDIS_CKOEL': 1032, 'VENTDIS_CVERW': 1031,
                  'VENTDIS_DICHT': 1029, 'VENTDIS_LBK': 1033},
     'VENTILATOR': {},
@@ -1118,7 +1119,7 @@ def _build_entities(vabi):
 
             # ── Installatiesystemen ─────────────────────────────────────────────
             _build_verw(entities, relations, unit_rz_id, rz_id)
-            _build_vent(entities, relations, unit_rz_id, rz_id, ventcap_id)
+            _build_vent(entities, relations, unit_id, unit_rz_id, rz_id, ventcap_id)
             if rz.get('koeling'):
                 _build_koel(entities, relations, unit_rz_id, rz_id)
             _build_tapw(entities, relations, unit_rz_id, tapw_unit_rz_id)
@@ -1432,7 +1433,7 @@ def _build_verw(entities, relations, unit_rz_id, rz_id):
     _link(relations, verw_id, 'VERW', vat_id, 'VERW-VAT')
 
 
-def _build_vent(entities, relations, unit_rz_id, rz_id, ventcap_id):
+def _build_vent(entities, relations, unit_id, unit_rz_id, rz_id, ventcap_id):
     """Ventilatie installatie (forfaitaire methode)."""
     inst_id = _guid()
     _add(entities, relations, inst_id, 'INSTALLATIE', {
@@ -1463,26 +1464,36 @@ def _build_vent(entities, relations, unit_rz_id, rz_id, ventcap_id):
     })
     _link(relations, vent_id, 'VENT', ventaan_id, 'VENTAAN')
 
-    # VENTILATOR + VENTILATOREIG
-    for i in range(2):
+    # VENTILATOR #1 onder VENT, VENTILATOR #2 onder VENTAAN
+    for parent_id, parent_type in [(vent_id, 'VENT'), (ventaan_id, 'VENTAAN')]:
         ventilator_id = _guid()
         _add(entities, relations, ventilator_id, 'VENTILATOR', {})
-        _link(relations, ventaan_id, 'VENTAAN', ventilator_id, 'VENTILATOR')
+        _link(relations, parent_id, parent_type, ventilator_id, 'VENTILATOR')
 
         veig_id = _guid()
         _add(entities, relations, veig_id, 'VENTILATOREIG', {})
         _link(relations, ventilator_id, 'VENTILATOR', veig_id, 'VENTILATOREIG')
+        _link(relations, unit_id, 'UNIT', veig_id, 'VENTILATOREIG')  # 2e ouder
 
-    # WARMTETERUG + WARMTE-TOEV-KAN
-    wtr_id = _guid()
-    _add(entities, relations, wtr_id, 'WARMTETERUG', {})
-    _link(relations, ventaan_id, 'VENTAAN', wtr_id, 'WARMTETERUG')
+    # WARMTETERUG #1 onder VENT, #2 onder VENTAAN; elk met WARMTE-TOEV-KAN (ouders: WARMTETERUG + UNIT)
+    for parent_id, parent_type in [(vent_id, 'VENT'), (ventaan_id, 'VENTAAN')]:
+        wtr_id = _guid()
+        _add(entities, relations, wtr_id, 'WARMTETERUG', {})
+        _link(relations, parent_id, parent_type, wtr_id, 'WARMTETERUG')
 
-    wtk_id = _guid()
-    _add(entities, relations, wtk_id, 'WARMTE-TOEV-KAN', {})
-    _link(relations, wtr_id, 'WARMTETERUG', wtk_id, 'WARMTE-TOEV-KAN')
+        wtk_id = _guid()
+        _add(entities, relations, wtk_id, 'WARMTE-TOEV-KAN', {})
+        _link(relations, wtr_id,  'WARMTETERUG', wtk_id, 'WARMTE-TOEV-KAN')
+        _link(relations, unit_id, 'UNIT',         wtk_id, 'WARMTE-TOEV-KAN')  # 2e ouder
 
-    # VENTDIS, VENTDEB, VENTCAP (vent), VENTZBR
+    # VENT-VERB #1: ouders VENT + UNIT; VENT-VERB #2: ouders VENTAAN + UNIT
+    for parent_id, parent_type in [(vent_id, 'VENT'), (ventaan_id, 'VENTAAN')]:
+        verb_id = _guid()
+        _add(entities, relations, verb_id, 'VENT-VERB', {})
+        _link(relations, parent_id, parent_type, verb_id, 'VENT-VERB')
+        _link(relations, unit_id,   'UNIT',        verb_id, 'VENT-VERB')  # 2e ouder
+
+    # VENTDIS
     ventdis_id = _guid()
     _add(entities, relations, ventdis_id, 'VENTDIS', {
         'VENTDIS_C':     'VENTDIS_C_BUI',
@@ -1493,32 +1504,30 @@ def _build_vent(entities, relations, unit_rz_id, rz_id, ventcap_id):
     })
     _link(relations, vent_id, 'VENT', ventdis_id, 'VENTDIS')
 
+    # VENTDEB → VENTZBR (niet VENT → VENTZBR!)
     ventdeb_id = _guid()
     _add(entities, relations, ventdeb_id, 'VENTDEB', {
         'VENTDEB_CAP':    'VENTDEBCAP_ONB',
         'VENTDEB_CAPTAB': '',
+        'VENTDEB_ZBR':    '',
+        'VENTDEB_ZBRTAB': '',
     })
     _link(relations, vent_id, 'VENT', ventdeb_id, 'VENTDEB')
-
-    ventcap2_id = _guid()
-    _add(entities, relations, ventcap2_id, 'VENTCAP', {
-        'VENTCAP_MD': '', 'VENTCAP_MV': '', 'VENTCAP_NAOS': '',
-    })
-    _link(relations, vent_id, 'VENT', ventcap2_id, 'VENTCAP')
 
     ventzbr_id = _guid()
     _add(entities, relations, ventzbr_id, 'VENTZBR', {
         'VENTZBR_AANW': 'False',
         'VENTZBR_AG':   '',
     })
-    _link(relations, vent_id, 'VENT', ventzbr_id, 'VENTZBR')
-    _link(relations, rz_id, 'RZ', ventzbr_id, 'VENTZBR')
+    _link(relations, ventdeb_id, 'VENTDEB', ventzbr_id, 'VENTZBR')  # ouder = VENTDEB
+    _link(relations, rz_id,      'RZ',       ventzbr_id, 'VENTZBR')  # 2e ouder
 
-    # VENT-VERB x2
-    for _ in range(2):
-        verb_id = _guid()
-        _add(entities, relations, verb_id, 'VENT-VERB', {})
-        _link(relations, vent_id, 'VENT', verb_id, 'VENT-VERB')
+    # VENTCAP (2e, onder VENT)
+    ventcap2_id = _guid()
+    _add(entities, relations, ventcap2_id, 'VENTCAP', {
+        'VENTCAP_MD': '', 'VENTCAP_MV': '', 'VENTCAP_NAOS': '',
+    })
+    _link(relations, vent_id, 'VENT', ventcap2_id, 'VENTCAP')
 
     # VOORWARM
     voorwarm_id = _guid()
