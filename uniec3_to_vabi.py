@@ -7,6 +7,7 @@ uniec3_to_vabi.py — Converteert een .uniec3 bestand naar een VABI EPA .epa bes
 
 import io
 import json
+import re
 import uuid
 import zipfile
 from collections import defaultdict
@@ -506,11 +507,13 @@ def _process_begr(data: Uniec3Data, begr: dict, reg: ConstructieRegistry) -> dic
                 try:    return float(raw.replace(',', '.'))
                 except: return None
             belem.update({
-                'r_afstand':  _bnum('BELEMM_HOR_A_RECHTS'),
-                'r_breedte':  _bnum('BELEMM_HOR_B_RECHTS'),
-                'l_afstand':  _bnum('BELEMM_HOR_A_LINKS'),
-                'l_breedte':  _bnum('BELEMM_HOR_B_LINKS'),
-                'const_pct':  _bnum('BELEMM_CONST_BELEM'),   # numeriek als niet-REKEN
+                'r_afstand':   _bnum('BELEMM_HOR_A_RECHTS'),
+                'r_breedte':   _bnum('BELEMM_HOR_B_RECHTS'),
+                'l_afstand':   _bnum('BELEMM_HOR_A_LINKS'),
+                'l_breedte':   _bnum('BELEMM_HOR_B_LINKS'),
+                'const_pct':   _bnum('BELEMM_CONST_BELEM'),     # numeriek als niet-REKEN
+                'overst_hoogte': _bnum('BELEMM_HOOGTE_OVERST'),  # hoogte overstek [m]
+                'overst_afstand': _bnum('BELEMM_HOR_A_OVERST'),  # afstand overstek [m]
             })
 
         deelvlakken.append({
@@ -540,6 +543,80 @@ def _process_begr(data: Uniec3Data, begr: dict, reg: ConstructieRegistry) -> dic
         'constr_guid': constr_guid, 'constr_naam': constr_naam,
         'rc': rc, 'deelvlakken': deelvlakken, 'koudebruggen': koudebruggen,
     }
+
+
+def _resolve_woningpositie(unit: dict) -> tuple[str, str]:
+    """Bepaal VABI (Subtype, Ligging) uit Uniec3 UNIT_POS of UNIT_TYPEWON.
+
+    Stap 1: UNIT_POS (gestapeld/meergezins, TGEB_APPGEB)
+      Structuur: MGEB_<laag><hoek/midden>[<dak>][<variant>]
+        Laag:    OL = Onderste Laag (→ 0)
+                 TL = Tussenverdieping (→ 1)
+                 BL = Bovenste Laag (→ 2)
+        Positie: H = Hoek (→ Subtype=1), T = Tussen/midden (→ Subtype=2)
+      Voorbeelden: MGEB_OLHZD1, MGEB_TLT1, MGEB_BLH1
+
+    Stap 2: UNIT_TYPEWON (grondgebonden, TGEB_GRWON)
+      Structuur: TWON_<type><variant>[_K|_M]
+        Eerste cijfer: 4 → tussenverdieping (1), 5 → bovenste (2), rest → onderste (0)
+        Suffix: _K → hoek (1), _M → midden (2), anders → hoek (1)
+
+    Subtype in VABI: 1 = hoekwoning/eindwoning, 2 = tussenwoning
+    Ligging in VABI: 0 = onderste laag, 1 = tussenverdieping, 2 = bovenste laag
+    """
+    # Stap 1: UNIT_POS (meergezinswoning / appartement)
+    pos = _prop(unit, 'UNIT_POS')
+    if pos and pos.startswith('MGEB_'):
+        kern = pos[len('MGEB_'):]  # bv. 'OLHZD1', 'TLT1', 'BLH1'
+        laag = kern[:2]  # 'OL', 'TL', 'BL'
+        if laag == 'OL':
+            ligging = '0'
+        elif laag == 'TL':
+            ligging = '1'
+        elif laag == 'BL':
+            ligging = '2'
+        else:
+            ligging = '0'
+        # Het derde teken = H (hoek) of T (tussen/midden)
+        pos_char = kern[2:3].upper() if len(kern) > 2 else ''
+        subtype = '2' if pos_char == 'T' else '1'  # T=midden, H=hoek, rest=hoek
+        return subtype, ligging
+
+    # Stap 2: UNIT_TYPEWON (grondgebonden rijwoning / vrijstaand)
+    typewon = _prop(unit, 'UNIT_TYPEWON')
+    if typewon:
+        subtype = '2' if typewon.endswith('_M') else '1'
+        code = typewon[len('TWON_'):]
+        code = code.replace('_K', '').replace('_M', '').rstrip('_')
+        if code.startswith('4'):
+            ligging = '1'
+        elif code.startswith('5'):
+            ligging = '2'
+        else:
+            ligging = '0'
+        return subtype, ligging
+
+    return '1', '0'  # default: hoek, onderste laag
+
+
+def _geb_opnamedatum(data) -> str:
+    """Lees GEB_DATE uit de GEB-entiteit en geef terug als YYYYMMDD.
+
+    GEB_DATE is ISO-8601: '2024-06-18T18:16:22.825Z'
+    VABI Opnamedatum formaat: '20240618'
+    Bij afwezigheid of parseerfouten → '' (leeg, VABI gebruikt dan eigen datum).
+    """
+    gebs = data.entities_by_type.get('GEB', [])
+    if not gebs:
+        return ''
+    raw = _prop(gebs[0], 'GEB_DATE')
+    if not raw:
+        return ''
+    # Pak alleen het datum-gedeelte: 'YYYY-MM-DD'
+    m = re.match(r'(\d{4})-(\d{2})-(\d{2})', raw)
+    if m:
+        return m.group(1) + m.group(2) + m.group(3)
+    return ''
 
 
 def _process_unit(data: Uniec3Data, unit: dict,
@@ -576,11 +653,13 @@ def _process_unit(data: Uniec3Data, unit: dict,
     if not rekenzones and not go_total:
         return None
 
+    subtype, ligging = _resolve_woningpositie(unit)
     return {
         'naam': naam, 'straat': straat, 'huisnummer': huisnr,
         'postcode': postcode, 'woonplaats': woonplaats,
         'go': go_total or None, 'inst_guid': inst_guid,
         'rekenzones': rekenzones,
+        'subtype': subtype, 'ligging': ligging,
     }
 
 
@@ -1198,23 +1277,60 @@ def _xml_hoofdvlak(parent: Element, hv: dict, index: int):
 
         # Belemmering (schaduw) vanuit Uniec BELEMMERING-entiteit
         belem = dv.get('belem', {})
-        besch  = belem.get('besch', '')
-        heeft_rechts = 'RECHTS' in besch or 'BEIDE' in besch
-        heeft_links  = 'LINKS'  in besch or 'BEIDE' in besch
-        const_pct    = belem.get('const_pct')   # numerieke constante belemmering (%)
+        besch = belem.get('besch', '')
+        const_pct = belem.get('const_pct')   # numerieke constante belemmering (%)
 
-        _xml_text(dvx, 'InvoerBeschaduwing', '-1')
-        _xml_text(dvx, 'InvoerOverstek', '-1')
+        # Mapping CONSTRT_BESCH → VABI InvoerBeschaduwing + InvoerOverstek
+        #
+        # Belemmering-typen (InvoerBeschaduwing):
+        #   BELEMTYPE_MIN            → 1  minimale belemmering (vaste NTA-waarde)
+        #   BELEMTYPE_ZIJ_RECHTS/    → 2  zijbelemmering (berekend uit maten)
+        #     _LINKS / _BEIDE
+        #   BELEMTYPE_CONST + getal  → 3  constante belemmering (opgegeven %)
+        #   n.v.t. / leeg            → 0  geen belemmering
+        #
+        # Overstek-typen (InvoerOverstek):
+        #   BELEMTYPE_CONST_OVERST   → belemmering=0, overstek=1
+        #   BELEMTYPE_CO_EN_ZIJ      → belemmering=2 (zijbelem), overstek=1
+        heeft_rechts  = 'RECHTS' in besch or 'BEIDE' in besch
+        heeft_links   = 'LINKS'  in besch or 'BEIDE' in besch
+        heeft_zij     = heeft_rechts or heeft_links
+        heeft_overst  = besch in ('BELEMTYPE_CONST_OVERST', 'BELEMTYPE_CO_EN_ZIJ')
+
+        if besch == 'BELEMTYPE_MIN':
+            invoer_besch = '1'
+        elif besch == 'BELEMTYPE_CONST_OVERST':
+            invoer_besch = '0'   # geen zijbelemmering; overstek apart
+        elif besch == 'BELEMTYPE_CO_EN_ZIJ':
+            invoer_besch = '2'   # zijbelemmering (beide kanten) + overstek
+            heeft_rechts = heeft_links = True
+        elif heeft_zij:
+            invoer_besch = '2'
+        elif const_pct is not None:
+            invoer_besch = '3'
+        else:
+            invoer_besch = '0'
+
+        invoer_overst = '1' if heeft_overst else '-1'
+        overst_hoogte = belem.get('overst_hoogte')
+        overst_afstand = belem.get('overst_afstand')
+
+        _xml_text(dvx, 'InvoerBeschaduwing', invoer_besch)
+        _xml_text(dvx, 'InvoerOverstek', invoer_overst)
         _xml_text(dvx, 'ConstanteBelemmering',
-                  str(int(const_pct)) if const_pct is not None else '-1')
+                  str(int(round(const_pct))) if (invoer_besch == '3' and const_pct is not None)
+                  else '-1')
         _xml_text(dvx, 'Zijbelemmering', '-1')
         _xml_text(dvx, 'RelatieveBreedteZijbelemmering', '-1')
         _xml_text(dvx, 'ZonweringGglAlt', '0.000')
         _xml_text(dvx, 'ZonweringGglDif', '0.000')
         _xml_text(dvx, 'ZonweringBediening', '-1')
         _xml_text(dvx, 'ZonweringKleur', '-1')
-        _xml_text(dvx, 'BelemmeringHoogte', '0.00')
-        _xml_text(dvx, 'BelemmeringAfstand', '0.00')
+        # BelemmeringHoogte / Afstand: gebruik overstek-afmetingen als beschikbaar
+        _xml_text(dvx, 'BelemmeringHoogte',
+                  _fmt(overst_hoogte) if overst_hoogte is not None else '0.00')
+        _xml_text(dvx, 'BelemmeringAfstand',
+                  _fmt(overst_afstand) if overst_afstand is not None else '0.00')
         _xml_text(dvx, 'BelemmeringPercentage', '0')
         _xml_text(dvx, 'BelemmeringLinks', '1' if heeft_links else '0')
         _xml_text(dvx, 'BelemmeringLinksAfstand',
@@ -1228,7 +1344,7 @@ def _xml_hoofdvlak(parent: Element, hv: dict, index: int):
         _xml_text(dvx, 'BelemmeringRechtsBreedte',
                   _fmt(belem.get('r_breedte') or 0.0))
         _xml_text(dvx, 'BelemmeringRechtsHoogteverschil', '0')
-        _xml_text(dvx, 'Overstek', '0')
+        _xml_text(dvx, 'Overstek', '1' if heeft_overst else '0')
         _xml_text(dvx, 'OverstekPercentage', '0')
         _xml_text(dvx, 'AutoNaam', '0')
 
@@ -1322,7 +1438,8 @@ def _xml_rekenzone_algemeen(parent: Element, go: float | None):
     _xml_empty(alg, 'Opmerkingen')
 
 
-def _xml_object(parent: Element, woning: dict, index: int, gebouwhoogte: float = 0.0):
+def _xml_object(parent: Element, woning: dict, index: int,
+                gebouwhoogte: float = 0.0, opnamedatum: str = ''):
     obj = SubElement(parent, 'Object')
     obj.set('Index', str(index))
     _xml_text(obj, 'Guid', _guid())
@@ -1423,8 +1540,8 @@ def _xml_object(parent: Element, woning: dict, index: int, gebouwhoogte: float =
     oc.set('Index', '-1')
     _xml_text(oc, 'Guid', _guid())
     _xml_text(oc, 'Gebouwtype', '1')
-    _xml_text(oc, 'Subtype', '1')
-    _xml_text(oc, 'Ligging', '1')
+    _xml_text(oc, 'Subtype', woning.get('subtype', '1'))
+    _xml_text(oc, 'Ligging', woning.get('ligging', '0'))
     _xml_text(oc, 'Daktype', '-1')
     _xml_text(oc, 'AantalWoonfuncties', '0')
     _xml_text(oc, 'Gebouwhoogte', _fmt(gebouwhoogte))
@@ -1479,7 +1596,8 @@ def _xml_object(parent: Element, woning: dict, index: int, gebouwhoogte: float =
     _xml_text(reg_inv, 'GtoBerekening', '0')
     _xml_text(reg_inv, 'GtoUren', '0')
     _xml_text(reg_inv, 'KoelsysteemKoellastBerekening', '0')
-    _xml_text(reg_inv, 'Opnamedatum', '20250101')
+    # Opnamedatum: gebruik GEB_DATE uit Uniec3 (YYYYMMDD), anders leeg laten
+    _xml_text(reg_inv, 'Opnamedatum', opnamedatum)
     _xml_empty(reg_inv, 'OpnamedatumMaatwerkadvies')
     _xml_text(reg_inv, 'BezoekendeEpAdviseurGelijkAanRegistrerendeEpAdviseur', '1')
     _xml_empty(reg_inv, 'BezoekendeEpAdviseurVoorletters')
@@ -1490,7 +1608,8 @@ def _xml_object(parent: Element, woning: dict, index: int, gebouwhoogte: float =
     _xml_empty(reg_inv, 'InvoerendeEpAdviseur')
     _xml_empty(reg_inv, 'Certificaathouder')
     _xml_text(reg_inv, 'Gebruiker', '-1')
-    _xml_text(reg_inv, 'Status', '2')
+    # Status=4 = niet geblokkeerd (Status=2 zou "registratiegegevens geblokkeerd" aanzetten)
+    _xml_text(reg_inv, 'Status', '4')
     _xml_text(reg_inv, 'RepresentatieveWoningen', '0')
     # Lege representatieve invoerlijst — voorkomt EP-Online fetch bij ontbrekend veld
     orril = SubElement(reg_inv, 'ObjectRegistratieRepresentatiefInvoerList')
@@ -1556,6 +1675,7 @@ def convert(uniec3_bytes: bytes, project_naam: str = '') -> bytes:
     if infils:
         gebouwhoogte = _num(infils[0], 'INFIL_BGH') or 0.0
 
+    opnamedatum = _geb_opnamedatum(data)
     inst_info = _build_installatie(data)
 
     units = []
@@ -1659,7 +1779,7 @@ def convert(uniec3_bytes: bytes, project_naam: str = '') -> bytes:
     objecten.set('Index', '-1')
     _xml_text(objecten, 'Guid', _ZERO_GUID)
     for i, w in enumerate(woningen):
-        _xml_object(objecten, w, i, gebouwhoogte=gebouwhoogte)
+        _xml_object(objecten, w, i, gebouwhoogte=gebouwhoogte, opnamedatum=opnamedatum)
 
     # Energieplannen
     ep = SubElement(root, 'Energieplannen')
