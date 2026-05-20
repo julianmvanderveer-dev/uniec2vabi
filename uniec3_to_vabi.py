@@ -1282,16 +1282,16 @@ def _xml_hoofdvlak(parent: Element, hv: dict, index: int):
 
         # Mapping CONSTRT_BESCH → VABI InvoerBeschaduwing + InvoerOverstek
         #
-        # Belemmering-typen (InvoerBeschaduwing):
-        #   BELEMTYPE_MIN            → 1  minimale belemmering (vaste NTA-waarde)
-        #   BELEMTYPE_ZIJ_RECHTS/    → 2  zijbelemmering (berekend uit maten)
-        #     _LINKS / _BEIDE
-        #   BELEMTYPE_CONST + getal  → 3  constante belemmering (opgegeven %)
-        #   n.v.t. / leeg            → 0  geen belemmering
+        # InvoerBeschaduwing waarden in VABI:
+        #   -1  n.v.t. / geen belemmering
+        #    0  overstek (BELEMTYPE_CONST_OVERST)
+        #    1  minimale belemmering (BELEMTYPE_MIN)
+        #    2  zijbelemmering (BELEMTYPE_ZIJ_*)
+        #    3  constante belemmering (BELEMTYPE_CONST_BELEM, numeriek %)
         #
-        # Overstek-typen (InvoerOverstek):
-        #   BELEMTYPE_CONST_OVERST   → belemmering=0, overstek=1
-        #   BELEMTYPE_CO_EN_ZIJ      → belemmering=2 (zijbelem), overstek=1
+        # InvoerOverstek:
+        #   -1  geen overstek (auto)
+        #    1  overstek handmatig ingevoerd (BELEMTYPE_CONST_OVERST / CO_EN_ZIJ)
         heeft_rechts  = 'RECHTS' in besch or 'BEIDE' in besch
         heeft_links   = 'LINKS'  in besch or 'BEIDE' in besch
         heeft_zij     = heeft_rechts or heeft_links
@@ -1300,7 +1300,7 @@ def _xml_hoofdvlak(parent: Element, hv: dict, index: int):
         if besch == 'BELEMTYPE_MIN':
             invoer_besch = '1'
         elif besch == 'BELEMTYPE_CONST_OVERST':
-            invoer_besch = '0'   # geen zijbelemmering; overstek apart
+            invoer_besch = '0'   # overstek (geen zijbelemmering)
         elif besch == 'BELEMTYPE_CO_EN_ZIJ':
             invoer_besch = '2'   # zijbelemmering (beide kanten) + overstek
             heeft_rechts = heeft_links = True
@@ -1309,7 +1309,7 @@ def _xml_hoofdvlak(parent: Element, hv: dict, index: int):
         elif const_pct is not None:
             invoer_besch = '3'
         else:
-            invoer_besch = '0'
+            invoer_besch = '-1'  # n.v.t. / geen belemmering
 
         invoer_overst = '1' if heeft_overst else '-1'
         overst_hoogte = belem.get('overst_hoogte')
