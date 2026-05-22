@@ -45,7 +45,7 @@
     </a>
     {% endif %}
 
-    {% if not is_free %}
+    {% if has_invoice %}
     <a href="{{ url_for('download_invoice', file_id=file_id) }}"
        class="flex items-center justify-center gap-3 w-full bg-white hover:bg-slate-50
               border border-slate-200 text-slate-700 font-semibold py-3.5 rounded-xl transition shadow-sm">

@@ -522,7 +522,8 @@ def success(file_id):
                            filename=entry['filename'],
                            count=entry['count'],
                            direction=direction,
-                           is_free=_is_free(entry['count']))
+                           is_free=_is_free(entry['count']),
+                           has_invoice=bool(entry.get('invoice_nr')))
 
 
 @app.route('/download-epa/<file_id>')
@@ -557,7 +558,7 @@ def download_uniec3(file_id):
 def download_invoice(file_id):
     with _lock:
         entry = _store.get(file_id)
-    if not entry or _is_free(entry.get('count', 0)):
+    if not entry or not entry.get('invoice_nr'):
         flash('Geen factuur beschikbaar.', 'error')
         return redirect(url_for('index'))
     pdf_bytes = _generate_invoice_pdf(entry)
