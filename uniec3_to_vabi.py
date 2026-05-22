@@ -624,15 +624,24 @@ def _process_unit(data: Uniec3Data, unit: dict,
     uid = unit['NTAEntityDataId']
     naam = _prop(unit, 'UNIT_OMSCHR') or f"Woning {uid[:8]}"
 
-    straat = huisnr = postcode = woonplaats = ''
+    straat = huisnr = huisletter = postcode = woonplaats = ''
     afmobject = data.first_child(uid, 'AFMELDOBJECT')
     if afmobject:
         afloc = data.first_child(afmobject['NTAEntityDataId'], 'AFMELDLOCATIE')
         if afloc:
-            straat = _prop(afloc, 'AFMELDLOCATIE_STRAAT')
-            huisnr = _prop(afloc, 'AFMELDLOCATIE_HUISNR')
-            postcode = _prop(afloc, 'AFMELDLOCATIE_PC')
-            woonplaats = _prop(afloc, 'AFMELDLOCATIE_WOONPL')
+            straat = _prop(afloc, 'AFMELDLOCATIE_STRAAT') or ''
+            huisnr = _prop(afloc, 'AFMELDLOCATIE_HUISNR') or ''
+            postcode = _prop(afloc, 'AFMELDLOCATIE_PC') or ''
+            woonplaats = _prop(afloc, 'AFMELDLOCATIE_WOONPL') or ''
+
+    # Fallback: adres afleiden uit UNIT_OMSCHR (bijv. "Blok 1 | Bnr 1 | Tilburgseweg 83A")
+    if not straat and naam and '|' in naam:
+        last_part = naam.rsplit('|', 1)[-1].strip()
+        m = re.match(r'^(.*?)\s+(\d+)([A-Za-z]?)$', last_part)
+        if m:
+            straat    = m.group(1).strip()
+            huisnr    = m.group(2)
+            huisletter = m.group(3)
 
     unit_rzs = data.children(uid, 'UNIT-RZ')
     if not unit_rzs:
@@ -655,7 +664,7 @@ def _process_unit(data: Uniec3Data, unit: dict,
 
     subtype, ligging = _resolve_woningpositie(unit)
     return {
-        'naam': naam, 'straat': straat, 'huisnummer': huisnr,
+        'naam': naam, 'straat': straat, 'huisnummer': huisnr, 'huisletter': huisletter,
         'postcode': postcode, 'woonplaats': woonplaats,
         'go': go_total or None, 'inst_guid': inst_guid,
         'rekenzones': rekenzones,
@@ -1251,6 +1260,8 @@ def _xml_hoofdvlak(parent: Element, hv: dict, index: int):
     _xml_text(hvx, 'HoogteOfLengte', '0')
     _xml_text(hvx, 'Orientatie', hv['orientatie'])
     _xml_text(hvx, 'Hellingshoek', hv['hellingshoek'])
+    # GrenstAan (Begrenzing): gevels/daken = 0 (buitenlucht), vloeren = 1 (kruipruimte)
+    _xml_text(hvx, 'GrenstAan', '0' if hv['locatie'] in ('1', '2', '3', '4', '5') else '1')
     _xml_text(hvx, 'NaamConstructie', hv['constr_naam'])
     _xml_text(hvx, 'Rc', _fmt(hv.get('rc')))
     _xml_text(hvx, 'U', '0')
@@ -1258,6 +1269,9 @@ def _xml_hoofdvlak(parent: Element, hv: dict, index: int):
 
     # DeelvlakList
     dv_list = _xml_list(hvx, 'DeelvlakList')
+    hv_naam        = hv['naam']
+    hv_orientatie  = hv['orientatie']
+    hv_hellingshoek = hv['hellingshoek']
     for i, dv in enumerate(hv.get('deelvlakken', [])):
         dvx = SubElement(dv_list, 'Deelvlak')
         dvx.set('Index', str(i))
@@ -1269,11 +1283,13 @@ def _xml_hoofdvlak(parent: Element, hv: dict, index: int):
         _xml_text(dvx, 'U', _fmt(dv.get('u')))
         _xml_text(dvx, 'G', _fmt(dv.get('g')))
         _xml_text(dvx, 'NaamConstructie', dv['naam'])
+        _xml_text(dvx, 'NaamHoofdvlak', hv_naam)
         _xml_text(dvx, 'Belemmering', '0')
         _xml_text(dvx, 'Zonwering', '0')
         _xml_text(dvx, 'Breedte', '0.00')
         _xml_text(dvx, 'HoogteOfLengte', '0.00')
-        _xml_text(dvx, 'Arc', '0.00')
+        _xml_text(dvx, 'Orientatie', hv_orientatie)
+        _xml_text(dvx, 'Hellingshoek', hv_hellingshoek)
 
         # Belemmering (schaduw) vanuit Uniec BELEMMERING-entiteit
         belem = dv.get('belem', {})
@@ -1326,11 +1342,9 @@ def _xml_hoofdvlak(parent: Element, hv: dict, index: int):
         _xml_text(dvx, 'ZonweringGglDif', '0.000')
         _xml_text(dvx, 'ZonweringBediening', '-1')
         _xml_text(dvx, 'ZonweringKleur', '-1')
-        # BelemmeringHoogte / Afstand: gebruik overstek-afmetingen als beschikbaar
-        _xml_text(dvx, 'BelemmeringHoogte',
-                  _fmt(overst_hoogte) if overst_hoogte is not None else '0.00')
-        _xml_text(dvx, 'BelemmeringAfstand',
-                  _fmt(overst_afstand) if overst_afstand is not None else '0.00')
+        # BelemmeringHoogte/Afstand: voor zijbelemmering (niet overstek)
+        _xml_text(dvx, 'BelemmeringHoogte', '0.00')
+        _xml_text(dvx, 'BelemmeringAfstand', '0.00')
         _xml_text(dvx, 'BelemmeringPercentage', '0')
         _xml_text(dvx, 'BelemmeringLinks', '1' if heeft_links else '0')
         _xml_text(dvx, 'BelemmeringLinksAfstand',
@@ -1345,6 +1359,11 @@ def _xml_hoofdvlak(parent: Element, hv: dict, index: int):
                   _fmt(belem.get('r_breedte') or 0.0))
         _xml_text(dvx, 'BelemmeringRechtsHoogteverschil', '0')
         _xml_text(dvx, 'Overstek', '1' if heeft_overst else '0')
+        # OverstekHoogte / OverstekAfstand: overstek-specifieke maten (BELEMM_HOOGTE/HOR_A_OVERST)
+        _xml_text(dvx, 'OverstekHoogte',
+                  _fmt(overst_hoogte) if (heeft_overst and overst_hoogte is not None) else '0.00')
+        _xml_text(dvx, 'OverstekAfstand',
+                  _fmt(overst_afstand) if (heeft_overst and overst_afstand is not None) else '0.00')
         _xml_text(dvx, 'OverstekPercentage', '0')
         _xml_text(dvx, 'AutoNaam', '0')
 
@@ -1552,7 +1571,7 @@ def _xml_object(parent: Element, woning: dict, index: int,
     _xml_text(adr, 'Guid', _guid())
     _xml_text(adr, 'Straat', woning.get('straat', ''))
     _xml_text(adr, 'Huisnummer', woning.get('huisnummer', ''))
-    _xml_empty(adr, 'HuisletterHuisnummertoevoeging')
+    _xml_text(adr, 'HuisletterHuisnummertoevoeging', woning.get('huisletter', ''))
     _xml_empty(adr, 'Detailaanduiding')
     _xml_text(adr, 'Postcode', woning.get('postcode', ''))
     _xml_text(adr, 'Woonplaats', woning.get('woonplaats', ''))
