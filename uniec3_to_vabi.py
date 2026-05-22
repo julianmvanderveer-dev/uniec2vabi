@@ -1298,15 +1298,20 @@ def _xml_hoofdvlak(parent: Element, hv: dict, index: int):
 
         # Mapping CONSTRT_BESCH → VABI InvoerBeschaduwing + InvoerOverstek
         #
-        # InvoerBeschaduwing waarden in VABI:
+        # InvoerBeschaduwing waarden in VABI (empirisch vastgesteld):
         #   -1  n.v.t. / geen belemmering
         #    0  overstek (BELEMTYPE_CONST_OVERST)
         #    1  minimale belemmering (BELEMTYPE_MIN)
-        #    2  zijbelemmering (BELEMTYPE_ZIJ_*)
         #    3  constante belemmering (BELEMTYPE_CONST_BELEM, numeriek %)
+        #    6  zijbelemmering (BELEMTYPE_ZIJ_* en BELEMTYPE_CO_EN_ZIJ)
+        #
+        # Zijbelemmering enum (bij InvoerBeschaduwing=6):
+        #    0  links
+        #    1  rechts
+        #    2  beide kanten
         #
         # InvoerOverstek:
-        #   -1  geen overstek (auto)
+        #   -1  geen overstek
         #    1  overstek handmatig ingevoerd (BELEMTYPE_CONST_OVERST / CO_EN_ZIJ)
         heeft_rechts  = 'RECHTS' in besch or 'BEIDE' in besch
         heeft_links   = 'LINKS'  in besch or 'BEIDE' in besch
@@ -1318,10 +1323,10 @@ def _xml_hoofdvlak(parent: Element, hv: dict, index: int):
         elif besch == 'BELEMTYPE_CONST_OVERST':
             invoer_besch = '0'   # overstek (geen zijbelemmering)
         elif besch == 'BELEMTYPE_CO_EN_ZIJ':
-            invoer_besch = '2'   # zijbelemmering (beide kanten) + overstek
+            invoer_besch = '6'   # zijbelemmering (beide kanten) + overstek
             heeft_rechts = heeft_links = True
         elif heeft_zij:
-            invoer_besch = '2'
+            invoer_besch = '6'   # zijbelemmering
         elif const_pct is not None:
             invoer_besch = '3'
         else:
@@ -1331,13 +1336,26 @@ def _xml_hoofdvlak(parent: Element, hv: dict, index: int):
         overst_hoogte = belem.get('overst_hoogte')
         overst_afstand = belem.get('overst_afstand')
 
+        # heeft_zij herberekenen na mogelijke override (CO_EN_ZIJ zet links+rechts=True)
+        heeft_zij = heeft_rechts or heeft_links
+
+        # Zijbelemmering-kant: 0=links, 1=rechts, 2=beide
+        if heeft_links and heeft_rechts:
+            zij_kant = '2'
+        elif heeft_links:
+            zij_kant = '0'
+        elif heeft_rechts:
+            zij_kant = '1'
+        else:
+            zij_kant = '-1'
+
         _xml_text(dvx, 'InvoerBeschaduwing', invoer_besch)
         _xml_text(dvx, 'InvoerOverstek', invoer_overst)
         _xml_text(dvx, 'ConstanteBelemmering',
                   str(int(round(const_pct))) if (invoer_besch == '3' and const_pct is not None)
                   else '-1')
-        _xml_text(dvx, 'Zijbelemmering', '-1')
-        _xml_text(dvx, 'RelatieveBreedteZijbelemmering', '-1')
+        _xml_text(dvx, 'Zijbelemmering', zij_kant)
+        _xml_text(dvx, 'RelatieveBreedteZijbelemmering', '1' if heeft_zij else '-1')
         _xml_text(dvx, 'ZonweringGglAlt', '0.000')
         _xml_text(dvx, 'ZonweringGglDif', '0.000')
         _xml_text(dvx, 'ZonweringBediening', '-1')
