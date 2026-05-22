@@ -60,7 +60,7 @@ _HELLING = {
 }
 
 LIBCONSTRD_TO_TYPE = {
-    'LIBVLAK_GEVEL': '0', 'LIBVLAK_DAK': '0', 'LIBVLAK_VLOER': '0',
+    'LIBVLAK_GEVEL': '0', 'LIBVLAK_DAK': '6', 'LIBVLAK_VLOER': '7',
     'LIBVLAK_WONSCHEID': '1', 'LIBVLAK_KASW': '1', 'LIBVLAK_BUI': '0',
 }
 
@@ -1204,9 +1204,9 @@ def _xml_constructie(parent: Element, c: dict, index: int):
     u_str  = _fmt(c.get('u'))
     rc_str = _fmt(c.get('rc'))
     g_str  = _fmt(c.get('g'))
-    # Invoer=0 (directe invoer) voor alle typen: stabiel bij klikken in VABI
+    # Invoer=5 (Rc-waarde) voor alle typen
     # Opaque: Rc in <Rc>, transparent: U in <U> + UGlas/UKozijn
-    _xml_text(co, 'Invoer', '0')
+    _xml_text(co, 'Invoer', '5')
     _xml_text(co, 'KwaliteitsverklaringInvoermethode', '0')
     _xml_text(co, 'OppervlaktePerConstructie', '0')
     _xml_text(co, 'Oppervlakte', '0.00')
@@ -1751,7 +1751,7 @@ def convert(uniec3_bytes: bytes, project_naam: str = '') -> bytes:
     _xml_text(pg, 'Guid', _guid())
     _xml_text(pg, 'Objecttype', '0')
     _xml_text(pg, 'Bouwfase', '0')
-    _xml_text(pg, 'Opname', '0')
+    _xml_text(pg, 'Opname', '1')   # 1=detailopname
     _xml_text(pg, 'UWaardeRaamMetOmtrekEnOppervlakte', '0')
     _xml_text(pg, 'Naam', project_naam)
     _xml_empty(pg, 'ProjectNr')
