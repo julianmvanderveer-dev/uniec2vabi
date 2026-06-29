@@ -59,18 +59,22 @@ ORI_MAP = {
 }
 
 # VABI Hoofdfunctie (int) → Uniec3 GF code
+# Geldige codes afgeleid uit werkende Uniec3-referentiebestanden:
+#   GF_BIJEENKIND, GF_BIJEENOVER, GF_GEZONDOVER, GF_KANT,
+#   GF_LOGIES, GF_ONDERW, GF_SPORT, GF_WINKEL
 HOOFDFUNCTIE_TO_GF = {
-    '2':  'GF_BIJEEN',
-    '3':  'GF_CEL',
-    '4':  'GF_GEZONDH_BED',
-    '5':  'GF_GEZONDH_ZBED',
-    '6':  'GF_INDUSTRIE',
-    '7':  'GF_KANTOOR',
-    '8':  'GF_LOGIES',
-    '9':  'GF_ONDERWIJS',
-    '10': 'GF_SPORT',
-    '11': 'GF_WINKEL',
-    '12': 'GF_BIJEENOVER',
+    '0':  'GF_BIJEENOVER',   # Overige gebruiksfunctie
+    '2':  'GF_BIJEENOVER',   # Bijeenkomstfunctie  (GF_BIJEEN bestaat niet in Uniec3)
+    '3':  'GF_BIJEENOVER',   # Celfunctie          (geen aparte code in Uniec3)
+    '4':  'GF_GEZONDOVER',   # Gezondheidszorg bedgebonden
+    '5':  'GF_GEZONDOVER',   # Gezondheidszorg niet-bedgebonden
+    '6':  'GF_BIJEENOVER',   # Industriefunctie    (geen aparte code in Uniec3)
+    '7':  'GF_KANT',         # Kantoorfunctie
+    '8':  'GF_LOGIES',       # Logiesfunctie
+    '9':  'GF_ONDERW',       # Onderwijsfunctie
+    '10': 'GF_SPORT',        # Sportfunctie
+    '11': 'GF_WINKEL',       # Winkelfunctie
+    '12': 'GF_BIJEENOVER',   # Overige bijeenkomstfunctie
 }
 
 # VABI Verlichting Regeling → Uniec3 VERLZ_VERLREG
@@ -278,7 +282,11 @@ PROP_VERSIONS = {
                  'UNIT_TYPEGEB': 939},
     'UNIT-RZ':  {'UNIT-RZBLAAG': 943, 'UNIT-RZCM': 17434, 'UNIT-RZID': 946},
     'UNIT-RZ-GF': {'UNIT-RZ-GFAG': 944, 'UNIT-RZ-GFID': 945},
-    'VENT':     {'VENT_OPEN': 11256, 'VENT_OPM': 17444},
+    'VENT':     {'VENT_FCTRL': 969, 'VENT_GEM': 5187, 'VENT_INVOER': 966,
+                 'VENT_LBK': 17351, 'VENT_OPEN': 11256, 'VENT_OPM': 17444,
+                 'VENT_OPP_GEM': 17352, 'VENT_OPP_LBK': 17353,
+                 'VENT_PKOEL': 17393, 'VENT_SYS': 964, 'VENT_SYSVAR': 967,
+                 'VENT_VARIANT': 1241, 'VENT_VERB': 965, 'VENT_VERBL': 4193},
     'VENT-VERB': {'VENT-VERB_OMSCHR': 4187},
     'VENTAAN':  {'VENTAAN_FCTRL': 975, 'VENTAAN_INVOER': 972, 'VENTAAN_SYS': 970,
                  'VENTAAN_SYSVAR': 973, 'VENTAAN_VARIANT': 1242,
@@ -288,7 +296,8 @@ PROP_VERSIONS = {
     'VENTDEB':  {'VENTDEB_CAP': 1020, 'VENTDEB_CAPTAB': 1021,
                  'VENTDEB_ZBR': 17531, 'VENTDEB_ZBRTAB': 17534},
     'VENTDIS':  {'VENTDIS_C': 1030, 'VENTDIS_CKOEL': 1032, 'VENTDIS_CVERW': 1031,
-                 'VENTDIS_DICHT': 1029, 'VENTDIS_LBK': 1033},
+                 'VENTDIS_DEB': 17534, 'VENTDIS_DICHT': 1029, 'VENTDIS_LBK': 1033,
+                 'VENTDIS_REC': 17535},
     'VENTILATOR': {},
     'VENTILATOREIG': {},
     'VENTZBR':  {'VENTZBR_AANW': 17532, 'VENTZBR_AG': 17533},
@@ -433,8 +442,8 @@ def _read_vabi(epa_bytes):
                 'naam': _txt(c, 'Naam') or '',
                 'type': _txt(c, 'ConstructieType') or '0',
                 'rc':   _f(c, 'Rc'),
-                'u':    _f(c, 'Uwaardeglasconstructie'),
-                'g':    _f(c, 'Gwaarde'),
+                'u':    _f(c, 'Uwaardeglasconstructie') or _f(c, 'U'),
+                'g':    _f(c, 'Gwaarde') or _f(c, 'G'),
             }
 
     # Installaties (globaal, eerste)
@@ -475,6 +484,20 @@ def _read_vabi(epa_bytes):
             bwjr = _txt(alg, 'Bouwjaar') if alg is not None else '2024'
             hfunc = _txt(alg, 'Hoofdfunctie') if alg is not None else '11'
             ag_raw = _f(alg, 'Gebruiksoppervlakte') if alg is not None else 0.0
+
+            # Deelgebruiksfuncties (meerdere gebruiksfuncties binnen één rekenzone)
+            deelfuncties = []
+            if alg is not None:
+                deelfuncties_el = alg.find('Deelfuncties')
+                if deelfuncties_el is not None:
+                    for df in deelfuncties_el.findall('Deelfunctie'):
+                        functie = _txt(df, 'Functie') or '-1'
+                        opp = _f(df, 'OppervlakteDeelfunctie')
+                        if functie not in ('-1', '') and opp > 0.0:
+                            deelfuncties.append({
+                                'functie': functie,
+                                'opp':     opp,
+                            })
 
             # Verlichting
             verlichtingen = []
@@ -586,6 +609,7 @@ def _read_vabi(epa_bytes):
                 'bwjr':          bwjr or '2024',
                 'hoofdfunctie':  hfunc or '11',
                 'ag':            ag_raw,
+                'deelfuncties':  deelfuncties,
                 'verlichtingen': verlichtingen,
                 'hoofdvlakken':  hoofdvlakken,
                 'vent_systeem':  vent_systeem,
@@ -841,37 +865,35 @@ def _build_entities(vabi):
                 'RZFORM_OPEN':     'true',
             })
 
-            # UNIT-RZ-GF
+            # UNIT-RZ-GF structuur:
+            #   Hoofdfunctie krijgt UNIT-RZ-GF #1 met oppervlak = Ag − som(deelfuncties).
+            #   Elke deelfunctie krijgt een eigen UNIT-RZ-GF.
+            #   Geen GRUIMTE aanmaken: VABI heeft geen gemeenschappelijke ruimten;
+            #   BEGR en VERLZONE worden direct onder UNIT-RZ gehangen.
+            deelfuncties = rz.get('deelfuncties', [])
+            deelsom = sum(df['opp'] for df in deelfuncties)
+            hoofdfunctie_ag = max(0.0, ag - deelsom)
+
+            # UNIT-RZ-GF voor hoofdfunctie
             unit_rz_gf_id = _guid()
             _add(entities, relations, unit_rz_gf_id, 'UNIT-RZ-GF', {
-                'UNIT-RZ-GFAG': _fmt(ag),
+                'UNIT-RZ-GFAG': _fmt(hoofdfunctie_ag if deelfuncties else ag),
                 'UNIT-RZ-GFID': gf_code,
             })
             _link(relations, unit_rz_id, 'UNIT-RZ', unit_rz_gf_id, 'UNIT-RZ-GF')
 
-            # GRUIMTE (onder UNIT-RZ-GF)
-            gruimte_id = _guid()
-            _add(entities, relations, gruimte_id, 'GRUIMTE', {
-                'GRUIMTE_AG':         '0,00',
-                'GRUIMTE_AV_INVOER':  'GRUIMTE_AV_INVOER_RZ',
-                'GRUIMTE_OMSCHR':     'Gemeenschappelijk',
-                'GRUIMTE_UNITID':     '',
-            })
-            _link(relations, unit_rz_gf_id, 'UNIT-RZ-GF', gruimte_id, 'GRUIMTE')
+            # Extra UNIT-RZ-GF voor elke deelfunctie (geen GRUIMTE)
+            for df in deelfuncties:
+                df_gf_code = HOOFDFUNCTIE_TO_GF.get(df['functie'], 'GF_BIJEENOVER')
+                df_gf_id = _guid()
+                _add(entities, relations, df_gf_id, 'UNIT-RZ-GF', {
+                    'UNIT-RZ-GFAG': _fmt(df['opp']),
+                    'UNIT-RZ-GFID': df_gf_code,
+                })
+                _link(relations, unit_rz_id, 'UNIT-RZ', df_gf_id, 'UNIT-RZ-GF')
 
-            gruimte_begr_form_id = _guid()
-            _add(entities, relations, gruimte_begr_form_id, 'BEGR-FORM', {
-                'BEGR-FORM_OPEN': 'true',
-            })
-            _link(relations, gruimte_id, 'GRUIMTE', gruimte_begr_form_id, 'BEGR-FORM')
-
-            # VENTCAP
-            ventcap_id = _guid()
-            _add(entities, relations, ventcap_id, 'VENTCAP', {
-                'VENTCAP_MD': '', 'VENTCAP_MV': '', 'VENTCAP_NAOS': '',
-                'VENTCAP_ND': '', 'VENTCAP_NV': '',
-            })
-            _link(relations, unit_rz_id, 'UNIT-RZ', ventcap_id, 'VENTCAP')
+            # VENTCAP wordt aangemaakt in _build_vent en daar ook aan UNIT-RZ gekoppeld
+            ventcap_id = _guid()  # placeholder, wordt doorgegeven aan _build_vent
 
             # VLEIDINGL
             vleidingl_id = _guid()
@@ -903,17 +925,14 @@ def _build_entities(vabi):
                     'VERLZ_FD_NON':  '1,000',
                     'VERLZ_F_AFZ':   '0,00',
                     'VERLZ_KAG30':   kag30_val,
-                    'VERLZ_NWW':     'VERLZ_NWW_ONBEK',
+                    'VERLZ_NWW':     '',
                     'VERLZ_OMSCHR':  vl['naam'],
                     'VERLZ_PN':      _fmt(vl['vermogen']),
-                    'VERLZ_TYPE':    'VERLZ_TYPE_OVERIG',
+                    'VERLZ_TYPE':    '',
                     'VERLZ_VERLREG': verlreg,
                     'VERLZ_WL':      '',
                 })
-                _link(relations, gruimte_id, 'GRUIMTE', vlzone_id, 'VERLZONE')
                 _link(relations, unit_rz_id, 'UNIT-RZ', vlzone_id, 'VERLZONE')
-                if first_vlzone_for_gruimte is None:
-                    first_vlzone_for_gruimte = vlzone_id
 
             # Fallback: altijd minimaal 1 VERLZONE per rekenzone (vereist door Uniec3)
             if not verlichtingen:
@@ -925,14 +944,13 @@ def _build_entities(vabi):
                     'VERLZ_FD_NON':  '1,000',
                     'VERLZ_F_AFZ':   '0,00',
                     'VERLZ_KAG30':   'VERLZ_KAG_KANT_NVT',
-                    'VERLZ_NWW':     'VERLZ_NWW_ONBEK',
+                    'VERLZ_NWW':     '',
                     'VERLZ_OMSCHR':  rz.get('naam', 'VZ'),
                     'VERLZ_PN':      '',
-                    'VERLZ_TYPE':    'VERLZ_TYPE_OVERIG',
+                    'VERLZ_TYPE':    '',
                     'VERLZ_VERLREG': 'VERLZ_VERLREG_CA',
                     'VERLZ_WL':      '',
                 })
-                _link(relations, gruimte_id, 'GRUIMTE', vlzone_id, 'VERLZONE')
                 _link(relations, unit_rz_id, 'UNIT-RZ', vlzone_id, 'VERLZONE')
 
             # ── Geometrie (BEGR) ───────────────────────────────────────────────
@@ -948,6 +966,14 @@ def _build_entities(vabi):
                 if vlak == 'VLAK_VLOER':
                     begr_vloer = 'VL_MV_GRSP'
 
+                # BEGR_HEL: 90° voor gevels, n.v.t. voor daken, leeg voor vloeren
+                if vlak == 'VLAK_GEVEL':
+                    begr_hel = '90'
+                elif vlak == 'VLAK_DAK':
+                    begr_hel = 'n.v.t.'
+                else:
+                    begr_hel = ''
+
                 _add(entities, relations, begr_id, 'BEGR', {
                     'BEGR_A':          _fmt(hv['opp_bruto']),
                     'BEGR_AOR':        '',
@@ -956,7 +982,7 @@ def _build_entities(vabi):
                     'BEGR_DAK':        '',
                     'BEGR_DUMMY':      '',
                     'BEGR_GEVEL':      begr_gevel,
-                    'BEGR_HEL':        'n.v.t.',
+                    'BEGR_HEL':        begr_hel,
                     'BEGR_KWAND':      '',
                     'BEGR_L':          '',
                     'BEGR_OMSCHR':     hv['naam'],
@@ -967,7 +993,6 @@ def _build_entities(vabi):
                     'BEGR_VL_OMV':     '',
                 }, order=100.0 + hv_idx)
                 _link(relations, unit_rz_id, 'UNIT-RZ', begr_id, 'BEGR')
-                _link(relations, gruimte_id, 'GRUIMTE', begr_id, 'BEGR')
 
                 # BEGR auto-sub-entities
                 for etype, props in [
@@ -989,7 +1014,7 @@ def _build_entities(vabi):
                     'CONSTRWG_L':   '',
                     'CONSTRWG_LIB': '',
                     'CONSTRWG_OPM': '',
-                    'CONSTRWG_OPP': _fmt(hv['opp_netto']),
+                    'CONSTRWG_OPP': _fmt(hv['opp_bruto']),
                 })
                 _link(relations, begr_id, 'BEGR', constrwg_id, 'CONSTRWG')
 
@@ -1191,10 +1216,11 @@ def _build_results(entities, relations, basis_id, geb_id, unit_ids,
     mwa_id = _guid()
     _add(entities, relations, mwa_id, 'MWA-RESULTS', {'MWA-RESULTS_DUMMY': ''})
 
-    # NTA-RESULTS → PRESTATIE (gebouw + unit)
-    _link(relations, nta_id, 'NTA-RESULTS', prestatie_geb_id, 'PRESTATIE')
+    # NTA-RESULTS + BASIS → PRESTATIE (gebouw + unit)
+    _link(relations, nta_id,   'NTA-RESULTS', prestatie_geb_id, 'PRESTATIE')
     for pid in prestatie_unit_ids:
-        _link(relations, nta_id, 'NTA-RESULTS', pid, 'PRESTATIE')
+        _link(relations, nta_id,   'NTA-RESULTS', pid, 'PRESTATIE')
+        _link(relations, basis_id, 'BASIS',        pid, 'PRESTATIE')
 
     def _make_ef(props):
         eid = _guid()
@@ -1308,28 +1334,23 @@ def _build_results(entities, relations, basis_id, geb_id, unit_ids,
         _link(relations, nta_id,   'NTA-RESULTS', lstrm_urz_id, 'RESULT-LSTRM')
 
         # RESULT-TOJULI
+        # RESULT-TOJULI_AANW_AANV_BER is a required input field (not auto-calculated);
+        # must be pre-set to 'RESULT-TOJULI_AANW_AANV_BER1', otherwise [D001] is raised.
+        _tojuli_props = dict({k: '' for k in [
+            'RESULT-TOJULI_BEP_ZON', 'RESULT-TOJULI_KOELCAP', 'RESULT-TOJULI_MAX',
+            'RESULT-TOJULI_NOORD', 'RESULT-TOJULI_NOORD_OOST', 'RESULT-TOJULI_NOORD_WEST',
+            'RESULT-TOJULI_OOST', 'RESULT-TOJULI_RAAMFACTOR', 'RESULT-TOJULI_WEINIG_RAMEN',
+            'RESULT-TOJULI_WEST', 'RESULT-TOJULI_ZUID', 'RESULT-TOJULI_ZUID_OOST',
+            'RESULT-TOJULI_ZUID_WEST', 'RESULT_TOJULI_RISICO', 'RESULT_TOJULI_TYPE_KOEL',
+        ]}, **{'RESULT-TOJULI_AANW_AANV_BER': 'RESULT-TOJULI_AANW_AANV_BER1'})
         tojuli_rz_id = _guid()
-        _add(entities, relations, tojuli_rz_id, 'RESULT-TOJULI', {k: '' for k in [
-            'RESULT-TOJULI_AANW_AANV_BER', 'RESULT-TOJULI_BEP_ZON',
-            'RESULT-TOJULI_KOELCAP', 'RESULT-TOJULI_MAX', 'RESULT-TOJULI_NOORD',
-            'RESULT-TOJULI_NOORD_OOST', 'RESULT-TOJULI_NOORD_WEST', 'RESULT-TOJULI_OOST',
-            'RESULT-TOJULI_RAAMFACTOR', 'RESULT-TOJULI_WEINIG_RAMEN', 'RESULT-TOJULI_WEST',
-            'RESULT-TOJULI_ZUID', 'RESULT-TOJULI_ZUID_OOST', 'RESULT-TOJULI_ZUID_WEST',
-            'RESULT_TOJULI_RISICO', 'RESULT_TOJULI_TYPE_KOEL',
-        ]})
+        _add(entities, relations, tojuli_rz_id, 'RESULT-TOJULI', _tojuli_props)
         _link(relations, rz_id,    'RZ',      tojuli_rz_id, 'RESULT-TOJULI')
         _link(relations, basis_id, 'BASIS',    tojuli_rz_id, 'RESULT-TOJULI')
         _link(relations, nta_id, 'NTA-RESULTS', tojuli_rz_id, 'RESULT-TOJULI')
 
         tojuli_urz_id = _guid()
-        _add(entities, relations, tojuli_urz_id, 'RESULT-TOJULI', {k: '' for k in [
-            'RESULT-TOJULI_AANW_AANV_BER', 'RESULT-TOJULI_BEP_ZON',
-            'RESULT-TOJULI_KOELCAP', 'RESULT-TOJULI_MAX', 'RESULT-TOJULI_NOORD',
-            'RESULT-TOJULI_NOORD_OOST', 'RESULT-TOJULI_NOORD_WEST', 'RESULT-TOJULI_OOST',
-            'RESULT-TOJULI_RAAMFACTOR', 'RESULT-TOJULI_WEINIG_RAMEN', 'RESULT-TOJULI_WEST',
-            'RESULT-TOJULI_ZUID', 'RESULT-TOJULI_ZUID_OOST', 'RESULT-TOJULI_ZUID_WEST',
-            'RESULT_TOJULI_RISICO', 'RESULT_TOJULI_TYPE_KOEL',
-        ]})
+        _add(entities, relations, tojuli_urz_id, 'RESULT-TOJULI', _tojuli_props)
         _link(relations, unit_rz_id, 'UNIT-RZ', tojuli_urz_id, 'RESULT-TOJULI')
         _link(relations, basis_id,   'BASIS',    tojuli_urz_id, 'RESULT-TOJULI')
         _link(relations, nta_id,   'NTA-RESULTS', tojuli_urz_id, 'RESULT-TOJULI')
@@ -1445,8 +1466,20 @@ def _build_vent(entities, relations, unit_id, unit_rz_id, rz_id, ventcap_id):
 
     vent_id = _guid()
     _add(entities, relations, vent_id, 'VENT', {
-        'VENT_OPEN': 'true',
-        'VENT_OPM':  '',
+        'VENT_FCTRL':   '1,10',
+        'VENT_GEM':     'VENT_GEM_NIET',
+        'VENT_INVOER':  'VENT_FORF',
+        'VENT_LBK':     'VENT_LBK_WEL',
+        'VENT_OPEN':    'true',
+        'VENT_OPM':     '',
+        'VENT_OPP_GEM': '',
+        'VENT_OPP_LBK': '',
+        'VENT_PKOEL':   'VENTDIS_PKOEL_AUTO',
+        'VENT_SYS':     'VENTSYS_NATMECH',
+        'VENT_SYSVAR':  '10',
+        'VENT_VARIANT': 'VARIANT_C2a',
+        'VENT_VERB':    '',
+        'VENT_VERBL':   '',
     })
     _link(relations, inst_id, 'INSTALLATIE', vent_id, 'VENT')
     _link(relations, vent_id, 'VENT', rz_id, 'RZ')
@@ -1522,12 +1555,13 @@ def _build_vent(entities, relations, unit_id, unit_rz_id, rz_id, ventcap_id):
     _link(relations, ventdeb_id, 'VENTDEB', ventzbr_id, 'VENTZBR')  # ouder = VENTDEB
     _link(relations, rz_id,      'RZ',       ventzbr_id, 'VENTZBR')  # 2e ouder
 
-    # VENTCAP (2e, onder VENT)
-    ventcap2_id = _guid()
-    _add(entities, relations, ventcap2_id, 'VENTCAP', {
+    # VENTCAP: gekoppeld aan zowel UNIT-RZ (via caller) als VENT (hier)
+    _add(entities, relations, ventcap_id, 'VENTCAP', {
         'VENTCAP_MD': '', 'VENTCAP_MV': '', 'VENTCAP_NAOS': '',
+        'VENTCAP_ND': '', 'VENTCAP_NV': '',
     })
-    _link(relations, vent_id, 'VENT', ventcap2_id, 'VENTCAP')
+    _link(relations, unit_rz_id, 'UNIT-RZ', ventcap_id, 'VENTCAP')
+    _link(relations, vent_id,    'VENT',    ventcap_id, 'VENTCAP')
 
     # VOORWARM
     voorwarm_id = _guid()

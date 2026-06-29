@@ -11,6 +11,7 @@ import re
 import uuid
 import zipfile
 from collections import defaultdict
+from datetime import datetime, timezone, timedelta
 from xml.etree.ElementTree import Element, SubElement, tostring
 from xml.dom import minidom
 
@@ -61,7 +62,15 @@ _HELLING = {
 
 LIBCONSTRD_TO_TYPE = {
     'LIBVLAK_GEVEL': '0', 'LIBVLAK_DAK': '6', 'LIBVLAK_VLOER': '7',
+    'LIBVLAK_VLOER_BOVBUI': '7',
     'LIBVLAK_WONSCHEID': '1', 'LIBVLAK_KASW': '1', 'LIBVLAK_BUI': '0',
+}
+
+_VLOER_GRENST_AAN = {
+    'VL_MV_KR':      '1',   # boven kruipruimte (GrenstAan=1 in VABI)
+    'VL_MV_GR':      '4',   # op/in grond
+    'VL_MV_WA':      '3',   # grenst aan water
+    'VL_BTNL_ONDER': '0',   # boven buitenlucht (overkraging)
 }
 
 LIBCONSTRT_TO_TYPE = {
@@ -431,6 +440,8 @@ def _process_begr(data: Uniec3Data, begr: dict, reg: ConstructieRegistry) -> dic
     eid = begr['NTAEntityDataId']
     naam = _prop(begr, 'BEGR_OMSCHR') or 'Vlak'
     vlak = _prop(begr, 'BEGR_VLAK', 'VLAK_GEVEL')
+    vloer_subtype = (_prop(begr, 'BEGR_VLOER') or
+                     _prop(begr, 'BEGR_VLOER_BOVBUI') or '')
     area = _num(begr, 'BEGR_A') or 0.0
 
     locatie = VLAK_TO_LOCATIE.get(vlak, '2')
@@ -456,9 +467,11 @@ def _process_begr(data: Uniec3Data, begr: dict, reg: ConstructieRegistry) -> dic
     rc = None
     constr_naam = naam
     constr_type = LIBCONSTRD_TO_TYPE.get(
-        'LIBVLAK_GEVEL' if vlak == 'VLAK_GEVEL' else
-        'LIBVLAK_DAK' if vlak == 'VLAK_DAK' else
-        'LIBVLAK_VLOER' if vlak == 'VLAK_VLOER' else 'LIBVLAK_GEVEL', '0')
+        'LIBVLAK_GEVEL'        if vlak == 'VLAK_GEVEL'        else
+        'LIBVLAK_DAK'          if vlak == 'VLAK_DAK'          else
+        'LIBVLAK_VLOER'        if vlak == 'VLAK_VLOER'        else
+        'LIBVLAK_VLOER_BOVBUI' if vlak == 'VLAK_VLOER_BOVBUI' else
+        'LIBVLAK_GEVEL', '0')
 
     if constrd:
         libcd = _lookup_libconstrd(data, constrd)
@@ -514,6 +527,8 @@ def _process_begr(data: Uniec3Data, begr: dict, reg: ConstructieRegistry) -> dic
                 'const_pct':   _bnum('BELEMM_CONST_BELEM'),     # numeriek als niet-REKEN
                 'overst_hoogte': _bnum('BELEMM_HOOGTE_OVERST'),  # hoogte overstek [m]
                 'overst_afstand': _bnum('BELEMM_HOR_A_OVERST'),  # afstand overstek [m]
+                'zij_links_reken':  _prop(belem_ent, 'BELEMM_ZIJ_LINKS')  == 'BELEMM_ZIJBELEMML_REKEN',
+                'zij_rechts_reken': _prop(belem_ent, 'BELEMM_ZIJ_RECHTS') == 'BELEMM_ZIJBELEMML_REKEN',
             })
 
         deelvlakken.append({
@@ -542,6 +557,7 @@ def _process_begr(data: Uniec3Data, begr: dict, reg: ConstructieRegistry) -> dic
         'netto_area': netto_area, # netto (bruto minus transparant)
         'constr_guid': constr_guid, 'constr_naam': constr_naam,
         'rc': rc, 'deelvlakken': deelvlakken, 'koudebruggen': koudebruggen,
+        'vloer_subtype': vloer_subtype,
     }
 
 
@@ -600,11 +616,12 @@ def _resolve_woningpositie(unit: dict) -> tuple[str, str]:
 
 
 def _geb_opnamedatum(data) -> str:
-    """Lees GEB_DATE uit de GEB-entiteit en geef terug als YYYYMMDD.
+    """Lees GEB_DATE uit de GEB-entiteit en geef terug als YYYYMMDD in NL-tijd.
 
-    GEB_DATE is ISO-8601: '2024-06-18T18:16:22.825Z'
+    GEB_DATE is ISO-8601 UTC: '2024-06-18T18:16:22.825Z'
     VABI Opnamedatum formaat: '20240618'
     Bij afwezigheid of parseerfouten → '' (leeg, VABI gebruikt dan eigen datum).
+    Converteert UTC naar CET/CEST (+1/+2) via vaste +2 offset (zomertijd, conservatief).
     """
     gebs = data.entities_by_type.get('GEB', [])
     if not gebs:
@@ -612,15 +629,17 @@ def _geb_opnamedatum(data) -> str:
     raw = _prop(gebs[0], 'GEB_DATE')
     if not raw:
         return ''
-    # Pak alleen het datum-gedeelte: 'YYYY-MM-DD'
-    m = re.match(r'(\d{4})-(\d{2})-(\d{2})', raw)
-    if m:
-        return m.group(1) + m.group(2) + m.group(3)
-    return ''
+    try:
+        dt_utc = datetime.fromisoformat(raw.replace('Z', '+00:00'))
+        return dt_utc.strftime('%Y%m%d')
+    except Exception:
+        m = re.match(r'(\d{4})-(\d{2})-(\d{2})', raw)
+        return m.group(1) + m.group(2) + m.group(3) if m else ''
 
 
 def _process_unit(data: Uniec3Data, unit: dict,
-                  reg: ConstructieRegistry, inst_guid: str) -> dict | None:
+                  reg: ConstructieRegistry, inst_guid: str,
+                  infil_mwa: bool = False) -> dict | None:
     uid = unit['NTAEntityDataId']
     naam = _prop(unit, 'UNIT_OMSCHR') or f"Woning {uid[:8]}"
 
@@ -662,6 +681,20 @@ def _process_unit(data: Uniec3Data, unit: dict,
     if not rekenzones and not go_total:
         return None
 
+    # Qv10 per unit: lees INFILUNIT kind als infiltratie gemeten is
+    qv10_gemeten = False
+    qv10_waarde = 0.0
+    if infil_mwa:
+        infilunit = data.first_child(uid, 'INFILUNIT')
+        if infilunit:
+            raw_qv = _prop(infilunit, 'INFILUNIT_QV')
+            if raw_qv:
+                try:
+                    qv10_waarde = float(raw_qv.replace(',', '.'))
+                    qv10_gemeten = True
+                except ValueError:
+                    pass
+
     subtype, ligging = _resolve_woningpositie(unit)
     return {
         'naam': naam, 'straat': straat, 'huisnummer': huisnr, 'huisletter': huisletter,
@@ -669,6 +702,7 @@ def _process_unit(data: Uniec3Data, unit: dict,
         'go': go_total or None, 'inst_guid': inst_guid,
         'rekenzones': rekenzones,
         'subtype': subtype, 'ligging': ligging,
+        'qv10_gemeten': qv10_gemeten, 'qv10_waarde': qv10_waarde,
     }
 
 
@@ -1260,8 +1294,11 @@ def _xml_hoofdvlak(parent: Element, hv: dict, index: int):
     _xml_text(hvx, 'HoogteOfLengte', '0')
     _xml_text(hvx, 'Orientatie', hv['orientatie'])
     _xml_text(hvx, 'Hellingshoek', hv['hellingshoek'])
-    # GrenstAan (Begrenzing): gevels/daken = 0 (buitenlucht), vloeren = 1 (kruipruimte)
-    _xml_text(hvx, 'GrenstAan', '0' if hv['locatie'] in ('1', '2', '3', '4', '5') else '1')
+    if hv['locatie'] in ('1', '2', '3', '4', '5'):
+        grenst_aan = '0'  # gevel/dak: buitenlucht
+    else:
+        grenst_aan = _VLOER_GRENST_AAN.get(hv.get('vloer_subtype', ''), '0')
+    _xml_text(hvx, 'GrenstAan', grenst_aan)
     _xml_text(hvx, 'NaamConstructie', hv['constr_naam'])
     _xml_text(hvx, 'Rc', _fmt(hv.get('rc')))
     _xml_text(hvx, 'U', '0')
@@ -1303,7 +1340,8 @@ def _xml_hoofdvlak(parent: Element, hv: dict, index: int):
         #    0  overstek (BELEMTYPE_CONST_OVERST)
         #    1  minimale belemmering (BELEMTYPE_MIN)
         #    3  constante belemmering (BELEMTYPE_CONST_BELEM, numeriek %)
-        #    6  zijbelemmering (BELEMTYPE_ZIJ_* en BELEMTYPE_CO_EN_ZIJ)
+        #    6  zijbelemmering handmatig (BELEMM_ZIJ_* niet REKEN)
+        #    7  zijbelemmering automatisch (BELEMM_ZIJ_* = BELEMM_ZIJBELEMML_REKEN)
         #
         # Zijbelemmering enum (bij InvoerBeschaduwing=6):
         #    0  links
@@ -1318,15 +1356,17 @@ def _xml_hoofdvlak(parent: Element, hv: dict, index: int):
         heeft_zij     = heeft_rechts or heeft_links
         heeft_overst  = besch in ('BELEMTYPE_CONST_OVERST', 'BELEMTYPE_CO_EN_ZIJ')
 
+        zij_is_reken = belem.get('zij_links_reken') or belem.get('zij_rechts_reken')
+
         if besch == 'BELEMTYPE_MIN':
             invoer_besch = '1'
         elif besch == 'BELEMTYPE_CONST_OVERST':
             invoer_besch = '0'   # overstek (geen zijbelemmering)
         elif besch == 'BELEMTYPE_CO_EN_ZIJ':
-            invoer_besch = '6'   # zijbelemmering (beide kanten) + overstek
+            invoer_besch = '7' if zij_is_reken else '6'
             heeft_rechts = heeft_links = True
         elif heeft_zij:
-            invoer_besch = '6'   # zijbelemmering
+            invoer_besch = '7' if zij_is_reken else '6'
         elif const_pct is not None:
             invoer_besch = '3'
         else:
@@ -1397,15 +1437,16 @@ def _xml_hoofdvlak(parent: Element, hv: dict, index: int):
         _xml_text(kbx, 'Toeslag25Procent', '0')
 
 
-def _xml_rekenzone_algemeen(parent: Element, go: float | None):
+def _xml_rekenzone_algemeen(parent: Element, go: float | None,
+                            qv10_gemeten: bool = False, qv10_waarde: float = 0.0):
     """Schrijft <Algemeen Index='-1'> in een Rekenzone conform VABI 11.x."""
     alg = SubElement(parent, 'Algemeen')
     alg.set('Index', '-1')
     _xml_text(alg, 'Guid', _guid())
     _xml_text(alg, 'Bouwjaar', '2025')
     _xml_text(alg, 'Renovatiejaar', '0')
-    _xml_text(alg, 'Qv10Gemeten', '0')
-    _xml_text(alg, 'Qv10Waarde', '0.000')
+    _xml_text(alg, 'Qv10Gemeten', '1' if qv10_gemeten else '0')
+    _xml_text(alg, 'Qv10Waarde', f'{qv10_waarde:.3f}' if qv10_gemeten else '0.000')
     _xml_text(alg, 'EffectieveInterneWarmtecapaciteitVolgensBijlageB', '0')
     _xml_text(alg, 'EffectieveInterneWarmtecapaciteit', '0.00')
     _xml_text(alg, 'TypeBouwwijzeVloeren', '1')
@@ -1498,7 +1539,9 @@ def _xml_object(parent: Element, woning: dict, index: int,
         _xml_text(rz, 'Guid', _guid())
 
         # Rekenzone Algemeen (uitgebreid)
-        _xml_rekenzone_algemeen(rz, rz_data.get('go'))
+        _xml_rekenzone_algemeen(rz, rz_data.get('go'),
+                                qv10_gemeten=woning.get('qv10_gemeten', False),
+                                qv10_waarde=woning.get('qv10_waarde', 0.0))
 
         # VerlichtingList — verplicht na Algemeen
         _xml_list(rz, 'VerlichtingList')
@@ -1708,9 +1751,14 @@ def convert(uniec3_bytes: bytes, project_naam: str = '') -> bytes:
             project_naam = 'VABI Project'
 
     gebouwhoogte = 0.0
+    infil_mwa = False
     infils = data.entities_by_type.get('INFIL', [])
     if infils:
         gebouwhoogte = _num(infils[0], 'INFIL_BGH') or 0.0
+        infil_mwa = _prop(infils[0], 'INFIL_INVOER') == 'INFIL_MWA'
+
+    srtbw = _prop(gebs[0], 'GEB_SRTBW') if gebs else ''
+    bouwfase = '1' if srtbw == 'NIEUWB' else '0'
 
     opnamedatum = _geb_opnamedatum(data)
     inst_info = _build_installatie(data)
@@ -1735,7 +1783,7 @@ def convert(uniec3_bytes: bytes, project_naam: str = '') -> bytes:
 
     woningen = []
     for unit in units:
-        w = _process_unit(data, unit, reg, inst_info['guid'])
+        w = _process_unit(data, unit, reg, inst_info['guid'], infil_mwa=infil_mwa)
         if w:
             woningen.append(w)
 
@@ -1768,7 +1816,7 @@ def convert(uniec3_bytes: bytes, project_naam: str = '') -> bytes:
     pg.set('Index', '-1')
     _xml_text(pg, 'Guid', _guid())
     _xml_text(pg, 'Objecttype', '0')
-    _xml_text(pg, 'Bouwfase', '0')
+    _xml_text(pg, 'Bouwfase', bouwfase)
     _xml_text(pg, 'Opname', '1')   # 1=detailopname
     _xml_text(pg, 'UWaardeRaamMetOmtrekEnOppervlakte', '0')
     _xml_text(pg, 'Naam', project_naam)
