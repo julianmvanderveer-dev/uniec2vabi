@@ -67,9 +67,9 @@ LIBCONSTRD_TO_TYPE = {
 }
 
 _VLOER_GRENST_AAN = {
-    'VL_MV_KR':      '1',   # boven kruipruimte
+    'VL_MV_KR':      '3',   # boven kruipruimte (GrenstAan=3 in VABI)
     'VL_MV_GR':      '4',   # op/in grond
-    'VL_MV_WA':      '1',   # water komt niet voor in Uniec → fallback kruipruimte
+    'VL_MV_WA':      '3',   # water komt niet voor in Uniec → fallback kruipruimte
     'VL_BTNL_ONDER': '0',   # boven buitenlucht (overkraging)
 }
 
