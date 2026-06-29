@@ -67,9 +67,9 @@ LIBCONSTRD_TO_TYPE = {
 }
 
 _VLOER_GRENST_AAN = {
-    'VL_MV_KR':      '1',   # boven kruipruimte (GrenstAan=1 in VABI)
+    'VL_MV_KR':      '1',   # boven kruipruimte
     'VL_MV_GR':      '4',   # op/in grond
-    'VL_MV_WA':      '3',   # grenst aan water
+    'VL_MV_WA':      '1',   # water komt niet voor in Uniec → fallback kruipruimte
     'VL_BTNL_ONDER': '0',   # boven buitenlucht (overkraging)
 }
 
@@ -631,7 +631,9 @@ def _geb_opnamedatum(data) -> str:
         return ''
     try:
         dt_utc = datetime.fromisoformat(raw.replace('Z', '+00:00'))
-        return dt_utc.strftime('%Y%m%d')
+        # Gebruik +2 (CEST zomertijd) als NL offset
+        dt_nl = dt_utc.astimezone(timezone(timedelta(hours=2)))
+        return dt_nl.strftime('%Y%m%d')
     except Exception:
         m = re.match(r'(\d{4})-(\d{2})-(\d{2})', raw)
         return m.group(1) + m.group(2) + m.group(3) if m else ''
