@@ -4,7 +4,16 @@ Versiegeschiedenis van het Uniec2Vabi project (Brynt.nl). Nieuwste versie bovena
 
 ---
 
-## v47 — 2026-10-30 — (pending)
+## v48 — 2026-10-30 — (pending)
+**Commit:** Fix bouwlagen/verdiepingen: AantalBouwlagenRekenzone en GO per laag vanuit UNIT-RZBLAAG
+**Wijzigingen:**
+- AantalBouwlagenRekenzone: leest UNIT-RZBLAAG uit Uniec3 (was hardcoded 1; nu bv. 3)
+- Verdiepingen: genereert N Verdieping-entries elk met GO/N (was 1 entry met totale GO)
+- Dakraam oriëntatie/hellingshoek: deelvlakken in hellend dak erven correct Ori+Hel van het hoofdvlak (gefikst als bijeffect van D; BEGR_DAK/BEGR_HEL werkt nu ook voor dakramen)
+
+---
+
+## v47 — 2026-10-30 — 81388a2
 **Commit:** Fix Invoer, hellend dak (locatie/hellingshoek/oriëntatie) en UGlas/UKozijn
 **Wijzigingen:**
 - Invoer constructies: '5' → '4' (conform VABI 11.x EPA referentieformaat; '5' werd in VABI weergegeven als leeg veld)

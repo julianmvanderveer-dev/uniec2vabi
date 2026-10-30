@@ -695,10 +695,11 @@ def _process_unit(data: Uniec3Data, unit: dict,
         go = _num(urz, 'UNIT-RZAG') or _num(urz, 'UNIT-RZ_AG') or _num(urz, 'UNIT_RZAG')
         if go:
             go_total += go
+        bouwlagen = int(_num(urz, 'UNIT-RZBLAAG') or 1)
         rz_naam = f'Rekenzone {i + 1}' if multi else 'Rekenzone'
         hv_list = [_process_begr(data, begr, reg)
                    for begr in data.children(urz['NTAEntityDataId'], 'BEGR')]
-        rekenzones.append({'naam': rz_naam, 'go': go, 'hoofdvlakken': hv_list})
+        rekenzones.append({'naam': rz_naam, 'go': go, 'bouwlagen': bouwlagen, 'hoofdvlakken': hv_list})
 
     if not rekenzones and not go_total:
         return None
@@ -1460,7 +1461,8 @@ def _xml_hoofdvlak(parent: Element, hv: dict, index: int):
 
 
 def _xml_rekenzone_algemeen(parent: Element, go: float | None,
-                            qv10_gemeten: bool = False, qv10_waarde: float = 0.0):
+                            qv10_gemeten: bool = False, qv10_waarde: float = 0.0,
+                            bouwlagen: int = 1):
     """Schrijft <Algemeen Index='-1'> in een Rekenzone conform VABI 11.x."""
     alg = SubElement(parent, 'Algemeen')
     alg.set('Index', '-1')
@@ -1480,14 +1482,17 @@ def _xml_rekenzone_algemeen(parent: Element, go: float | None,
     _xml_text(alg, 'TypePlafond', '-1')
     _xml_text(alg, 'Gebruiksoppervlakte', '0')  # altijd 0 op Rekenzone-niveau
 
-    # Verdiepingen — 1 verdieping met de echte GO
+    # Verdiepingen — 1 per bouwlaag, GO evenredig verdeeld
+    n_blaag = max(1, bouwlagen)
+    go_per_laag = round((go / n_blaag), 2) if go else 0.0
     verd_list = SubElement(alg, 'Verdiepingen')
     verd_list.set('Index', '-1')
     _xml_text(verd_list, 'Guid', _ZERO_GUID)
-    verd = SubElement(verd_list, 'Verdieping')
-    verd.set('Index', '0')
-    _xml_text(verd, 'Guid', _guid())
-    _xml_text(verd, 'Gebruiksoppervlakte', _fmt(go) if go else '0.00')
+    for i in range(n_blaag):
+        verd = SubElement(verd_list, 'Verdieping')
+        verd.set('Index', str(i))
+        _xml_text(verd, 'Guid', _guid())
+        _xml_text(verd, 'Gebruiksoppervlakte', _fmt(go_per_laag) if go_per_laag else '0.00')
 
     _xml_text(alg, 'Hoofdfunctie', '-1')
 
@@ -1505,7 +1510,7 @@ def _xml_rekenzone_algemeen(parent: Element, go: float | None,
 
     _xml_text(alg, 'Leidingdoorvoeren', '1')
     _xml_text(alg, 'AantalLeidingdoorvoerenStandleidingen', '1')
-    _xml_text(alg, 'AantalBouwlagenRekenzone', '1')
+    _xml_text(alg, 'AantalBouwlagenRekenzone', str(n_blaag))
     _xml_text(alg, 'LeidingGeisoleerd', '0')
     _xml_text(alg, 'DoorLangsAndereAangrenzendeRekenzonesAvr', '0')
     _xml_text(alg, 'AantalDoorLangsAndereAangrenzendeRekenzonesAvr', '0')
@@ -1563,7 +1568,8 @@ def _xml_object(parent: Element, woning: dict, index: int,
         # Rekenzone Algemeen (uitgebreid)
         _xml_rekenzone_algemeen(rz, rz_data.get('go'),
                                 qv10_gemeten=woning.get('qv10_gemeten', False),
-                                qv10_waarde=woning.get('qv10_waarde', 0.0))
+                                qv10_waarde=woning.get('qv10_waarde', 0.0),
+                                bouwlagen=rz_data.get('bouwlagen', 1))
 
         # VerlichtingList — verplicht na Algemeen
         _xml_list(rz, 'VerlichtingList')
