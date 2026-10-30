@@ -445,9 +445,13 @@ def _process_begr(data: Uniec3Data, begr: dict, reg: ConstructieRegistry) -> dic
     area = _num(begr, 'BEGR_A') or 0.0
 
     locatie = VLAK_TO_LOCATIE.get(vlak, '2')
-    loc_override = _omschr_to_locatie(naam)
-    if loc_override:
-        locatie = loc_override
+    # Naam-gebaseerde locatie-override alleen voor gevels (niet voor dak/vloer)
+    if vlak == 'VLAK_GEVEL':
+        loc_override = _omschr_to_locatie(naam)
+        if loc_override:
+            locatie = loc_override
+    else:
+        loc_override = None
 
     begr_gevel = _prop(begr, 'BEGR_GEVEL')
     orientatie = _gevel_to_ori(begr_gevel)
@@ -462,6 +466,22 @@ def _process_begr(data: Uniec3Data, begr: dict, reg: ConstructieRegistry) -> dic
             locatie = _GEVEL_COMPASS_TO_LOCATIE[compass]
 
     hellingshoek = _HELLING.get(locatie, '6')
+
+    # Voor hellend dak: overschrijf hellingshoek en oriëntatie vanuit BEGR_HEL/BEGR_DAK
+    if vlak == 'VLAK_DAK':
+        begr_dak = _prop(begr, 'BEGR_DAK') or ''
+        hel_raw  = _prop(begr, 'BEGR_HEL')
+        if begr_dak:
+            dak_compass = begr_dak.split('_')[-1].upper()
+            if dak_compass in _GEVEL_ORI:
+                orientatie = _GEVEL_ORI[dak_compass]
+        if hel_raw:
+            try:
+                hel_deg = int(float(hel_raw.replace(',', '.')))
+                if hel_deg > 0:
+                    hellingshoek = str(hel_deg)
+            except ValueError:
+                pass
 
     constrd = data.first_child(eid, 'CONSTRD')
     rc = None
@@ -1240,9 +1260,9 @@ def _xml_constructie(parent: Element, c: dict, index: int):
     u_str  = _fmt(c.get('u'))
     rc_str = _fmt(c.get('rc'))
     g_str  = _fmt(c.get('g'))
-    # Invoer=5 (Rc-waarde) voor alle typen
-    # Opaque: Rc in <Rc>, transparent: U in <U> + UGlas/UKozijn
-    _xml_text(co, 'Invoer', '5')
+    # Invoer=4 voor alle typen (overeenkomstig EPA referentieformaat VABI 11.x)
+    # Opaque: Rc in <Rc>; transparent: Uw totaal in <U>, UGlas/UKozijn altijd 0
+    _xml_text(co, 'Invoer', '4')
     _xml_text(co, 'KwaliteitsverklaringInvoermethode', '0')
     _xml_text(co, 'OppervlaktePerConstructie', '0')
     _xml_text(co, 'Oppervlakte', '0.00')
@@ -1256,8 +1276,8 @@ def _xml_constructie(parent: Element, c: dict, index: int):
     _xml_empty(co, 'KwaliteitsverklaringAfstandhouder')
     _xml_empty(co, 'KwaliteitsverklaringType')
     _xml_empty(co, 'KwaliteitsverklaringIsolatieDikte')
-    _xml_text(co, 'UKozijn', u_str if is_deur else '0.00')
-    _xml_text(co, 'UGlas', u_str if is_raam else '0.00')
+    _xml_text(co, 'UKozijn', '0.00')  # Uw totaal zit in <U>; UKozijn altijd 0
+    _xml_text(co, 'UGlas', '0.00')   # Uw totaal zit in <U>; UGlas altijd 0
     _xml_text(co, 'PsiGlas', '0.000')
     _xml_text(co, 'OmtrekBeglazing', '0.00')
     _xml_text(co, 'PsiGlasroede', '0.000')
