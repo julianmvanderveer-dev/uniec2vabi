@@ -667,7 +667,7 @@ def _geb_opnamedatum(data) -> str:
 
 
 def _process_unit(data: Uniec3Data, unit: dict,
-                  reg: ConstructieRegistry, inst_guid: str,
+                  reg: ConstructieRegistry,
                   infil_mwa: bool = False) -> dict | None:
     uid = unit['NTAEntityDataId']
     naam = _prop(unit, 'UNIT_OMSCHR') or f"Woning {uid[:8]}"
@@ -702,11 +702,15 @@ def _process_unit(data: Uniec3Data, unit: dict,
         go = _num(urz, 'UNIT-RZAG') or _num(urz, 'UNIT-RZ_AG') or _num(urz, 'UNIT_RZAG')
         if go:
             go_total += go
-        bouwlagen = int(_num(urz, 'UNIT-RZBLAAG') or 1)
-        rz_naam = f'Rekenzone {i + 1}' if multi else 'Rekenzone'
-        hv_list = [_process_begr(data, begr, reg)
-                   for begr in data.children(urz['NTAEntityDataId'], 'BEGR')]
-        rekenzones.append({'naam': rz_naam, 'go': go, 'bouwlagen': bouwlagen, 'hoofdvlakken': hv_list})
+        bouwlagen  = int(_num(urz, 'UNIT-RZBLAAG') or 1)
+        rz_type_id = _prop(urz, 'UNIT-RZID') or urz['NTAEntityDataId']
+        rz_naam    = f'Rekenzone {i + 1}' if multi else 'Rekenzone'
+        hv_list    = [_process_begr(data, begr, reg)
+                      for begr in data.children(urz['NTAEntityDataId'], 'BEGR')]
+        rekenzones.append({
+            'naam': rz_naam, 'go': go, 'bouwlagen': bouwlagen,
+            'rz_type_id': rz_type_id, 'hoofdvlakken': hv_list,
+        })
 
     if not rekenzones and not go_total:
         return None
@@ -729,7 +733,7 @@ def _process_unit(data: Uniec3Data, unit: dict,
     return {
         'naam': naam, 'straat': straat, 'huisnummer': huisnr, 'huisletter': huisletter,
         'postcode': postcode, 'woonplaats': woonplaats,
-        'go': go_total or None, 'inst_guid': inst_guid,
+        'go': go_total or None,
         'rekenzones': rekenzones,
         'subtype': subtype, 'ligging': ligging,
         'qv10_gemeten': qv10_gemeten, 'qv10_waarde': qv10_waarde,
@@ -995,7 +999,7 @@ def _xml_installatie(parent: Element, info: dict, index: int):
     inst = SubElement(parent, 'Installatie')
     inst.set('Index', str(index))
     _xml_text(inst, 'Guid', info['guid'])
-    _xml_text(inst, 'Naam', 'Standaard installatie')
+    _xml_text(inst, 'Naam', f'Installatie {index + 1}')
     _xml_empty(inst, 'Opmerkingen')
     _xml_text(inst, 'KoelingBron', '1')
     _xml_empty(inst, 'KoelingOpmerkingen')
@@ -1596,7 +1600,7 @@ def _xml_object(parent: Element, woning: dict, index: int,
         _xml_text(rz, 'Naam', rz_data.get('naam', 'Rekenzone'))
         _xml_empty(rz, 'Installatie')
         _xml_empty(rz, 'Opmerkingen')
-        _xml_text(rz, 'OwnInstallatieId', woning['inst_guid'])
+        _xml_text(rz, 'OwnInstallatieId', rz_data.get('inst_guid', _ZERO_GUID))
         _xml_text(rz, 'InstallatieRefRekenzoneId', _ZERO_GUID)
         _xml_text(rz, 'KoelingOpwekkingRefRekenzoneId', _ZERO_GUID)
         _xml_text(rz, 'KoelingAfgifteRefRekenzoneId', _ZERO_GUID)
@@ -1818,9 +1822,20 @@ def convert(uniec3_bytes: bytes, project_naam: str = '') -> bytes:
 
     woningen = []
     for unit in units:
-        w = _process_unit(data, unit, reg, inst_info['guid'], infil_mwa=infil_mwa)
+        w = _process_unit(data, unit, reg, infil_mwa=infil_mwa)
         if w:
             woningen.append(w)
+
+    # Bouw één installatie per uniek UNIT-RZID (= rekenzonetype).
+    # Alle type-A rekenzones (zelfde UNIT-RZID) delen dezelfde installatie-GUID;
+    # hetzelfde geldt voor type B, C, etc.
+    rztype_to_inst_guid: dict[str, str] = {}
+    for w in woningen:
+        for rz in w.get('rekenzones', []):
+            rz_type_id = rz['rz_type_id']
+            if rz_type_id not in rztype_to_inst_guid:
+                rztype_to_inst_guid[rz_type_id] = _guid()
+            rz['inst_guid'] = rztype_to_inst_guid[rz_type_id]
 
     # ── XML opbouwen ─────────────────────────────────────────────────────────
     root = Element('Project')
@@ -1866,11 +1881,13 @@ def convert(uniec3_bytes: bytes, project_naam: str = '') -> bytes:
     fin.set('Index', '-1')
     _xml_text(fin, 'Guid', _guid())
 
-    # Installaties
+    # Installaties — één per uniek UNIT-RZID (rekenzonetype)
     insts = SubElement(root, 'Installaties')
     insts.set('Index', '-1')
     _xml_text(insts, 'Guid', _ZERO_GUID)
-    _xml_installatie(insts, inst_info, 0)
+    for i, (rz_type_id, inst_guid) in enumerate(rztype_to_inst_guid.items()):
+        inst_data = dict(inst_info, guid=inst_guid)
+        _xml_installatie(insts, inst_data, i)
 
     # Constructies
     constrs = SubElement(root, 'Constructies')

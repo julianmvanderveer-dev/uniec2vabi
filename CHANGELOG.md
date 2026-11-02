@@ -4,7 +4,17 @@ Versiegeschiedenis van het Uniec2Vabi project (Brynt.nl). Nieuwste versie bovena
 
 ---
 
-## v49 — 2026-11-02 — (pending)
+## v50 — 2026-11-02 — (pending)
+**Commit:** Installaties per rekenzonetype via UNIT-RZID (J)
+**Wijzigingen:**
+- J: Eén VABI-installatie per uniek UNIT-RZID (rekenzonetype A/B/...) i.p.v. één per project
+- Amaliahoff (9 woningen, zelfde type): 1 installatie gedeeld door 9 rekenzones
+- 2-rekenzone project (type A + B): 2 aparte installaties
+- Installaties benoemd "Installatie 1", "Installatie 2", etc.
+
+---
+
+## v49 — 2026-11-02 — 373b6c5
 **Commit:** Fix maten vlakken (H) en ψ-waarden 3 decimalen (I)
 **Wijzigingen:**
 - H: Breedte en HoogteOfLengte hoofdvlakken gevuld vanuit BEGR_B / BEGR_L (was hardcoded 0)
