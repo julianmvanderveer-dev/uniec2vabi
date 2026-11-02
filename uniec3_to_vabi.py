@@ -442,7 +442,9 @@ def _process_begr(data: Uniec3Data, begr: dict, reg: ConstructieRegistry) -> dic
     vlak = _prop(begr, 'BEGR_VLAK', 'VLAK_GEVEL')
     vloer_subtype = (_prop(begr, 'BEGR_VLOER') or
                      _prop(begr, 'BEGR_VLOER_BOVBUI') or '')
-    area = _num(begr, 'BEGR_A') or 0.0
+    area    = _num(begr, 'BEGR_A') or 0.0
+    breedte = _num(begr, 'BEGR_B') or 0.0
+    lengte  = _num(begr, 'BEGR_L') or 0.0
 
     locatie = VLAK_TO_LOCATIE.get(vlak, '2')
     # Naam-gebaseerde locatie-override alleen voor gevels (niet voor dak/vloer)
@@ -551,8 +553,12 @@ def _process_begr(data: Uniec3Data, begr: dict, reg: ConstructieRegistry) -> dic
                 'zij_rechts_reken': _prop(belem_ent, 'BELEMM_ZIJ_RECHTS') == 'BELEMM_ZIJBELEMML_REKEN',
             })
 
+        dv_breedte = _num(constrt, 'CONSTRT_B') or 0.0
+        dv_lengte  = _num(constrt, 'CONSTRT_L') or 0.0
+
         deelvlakken.append({
             'naam': dv_naam, 'guid': dv_guid, 'area': ct_area,
+            'breedte': dv_breedte, 'lengte': dv_lengte,
             'orientatie': orientatie, 'hellingshoek': hellingshoek,
             'u': u_val, 'g': g_val, 'belem': belem,
         })
@@ -575,6 +581,7 @@ def _process_begr(data: Uniec3Data, begr: dict, reg: ConstructieRegistry) -> dic
         'hellingshoek': hellingshoek,
         'area': area,             # bruto (BEGR_A)
         'netto_area': netto_area, # netto (bruto minus transparant)
+        'breedte': breedte, 'lengte': lengte,
         'constr_guid': constr_guid, 'constr_naam': constr_naam,
         'rc': rc, 'deelvlakken': deelvlakken, 'koudebruggen': koudebruggen,
         'vloer_subtype': vloer_subtype,
@@ -1313,8 +1320,8 @@ def _xml_hoofdvlak(parent: Element, hv: dict, index: int):
     _xml_text(hvx, 'Oppervlakte', _fmt(hv['area']))
     _xml_text(hvx, 'BrutoOppervlakte', _fmt(hv['area']))
     _xml_text(hvx, 'NettoOppervlakte', _fmt(hv.get('netto_area', hv['area'])))
-    _xml_text(hvx, 'Breedte', '0')
-    _xml_text(hvx, 'HoogteOfLengte', '0')
+    _xml_text(hvx, 'Breedte', _fmt(hv.get('breedte', 0.0)))
+    _xml_text(hvx, 'HoogteOfLengte', _fmt(hv.get('lengte', 0.0)))
     _xml_text(hvx, 'Orientatie', hv['orientatie'])
     _xml_text(hvx, 'Hellingshoek', hv['hellingshoek'])
     if hv['locatie'] in ('1', '2', '3', '4', '5'):
@@ -1346,8 +1353,8 @@ def _xml_hoofdvlak(parent: Element, hv: dict, index: int):
         _xml_text(dvx, 'NaamHoofdvlak', hv_naam)
         _xml_text(dvx, 'Belemmering', '0')
         _xml_text(dvx, 'Zonwering', '0')
-        _xml_text(dvx, 'Breedte', '0.00')
-        _xml_text(dvx, 'HoogteOfLengte', '0.00')
+        _xml_text(dvx, 'Breedte', _fmt(dv.get('breedte', 0.0)))
+        _xml_text(dvx, 'HoogteOfLengte', _fmt(dv.get('lengte', 0.0)))
         _xml_text(dvx, 'Orientatie', hv_orientatie)
         _xml_text(dvx, 'Hellingshoek', hv_hellingshoek)
 
@@ -1456,7 +1463,7 @@ def _xml_hoofdvlak(parent: Element, hv: dict, index: int):
         _xml_text(kbx, 'Guid', _guid())
         _xml_text(kbx, 'Omschrijving', kb['omschr'])
         _xml_text(kbx, 'Lengte', _fmt(kb['lengte']))
-        _xml_text(kbx, 'PsiWaarde', _fmt(kb['psi']))
+        _xml_text(kbx, 'PsiWaarde', _fmt(kb['psi'], 3))
         _xml_text(kbx, 'Toeslag25Procent', '0')
 
 

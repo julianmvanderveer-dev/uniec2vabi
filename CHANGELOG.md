@@ -4,7 +4,16 @@ Versiegeschiedenis van het Uniec2Vabi project (Brynt.nl). Nieuwste versie bovena
 
 ---
 
-## v48 — 2026-10-30 — (pending)
+## v49 — 2026-11-02 — (pending)
+**Commit:** Fix maten vlakken (H) en ψ-waarden 3 decimalen (I)
+**Wijzigingen:**
+- H: Breedte en HoogteOfLengte hoofdvlakken gevuld vanuit BEGR_B / BEGR_L (was hardcoded 0)
+- H: Breedte en HoogteOfLengte deelvlakken gevuld vanuit CONSTRT_B / CONSTRT_L (was hardcoded 0)
+- I: PsiWaarde koudebruggen nu 3 decimalen i.p.v. 2 (bijv. 0.040 i.p.v. 0.04)
+
+---
+
+## v48 — 2026-10-30 — f81c7b4
 **Commit:** Fix bouwlagen/verdiepingen: AantalBouwlagenRekenzone en GO per laag vanuit UNIT-RZBLAAG
 **Wijzigingen:**
 - AantalBouwlagenRekenzone: leest UNIT-RZBLAAG uit Uniec3 (was hardcoded 1; nu bv. 3)
