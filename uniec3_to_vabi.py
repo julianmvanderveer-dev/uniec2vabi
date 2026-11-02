@@ -123,6 +123,30 @@ TAPW_FABR_MAP = {
     'TAPW-OPWEK_FABR_F': '1',  # Overige
 }
 
+# PV-VELD_ORIE → VABI Orientatie (0=Z … 7=ZO)
+_PV_ORI_MAP = {
+    'PVORIE_Z': '0', 'PVORIE_ZW': '1', 'PVORIE_W': '2', 'PVORIE_NW': '3',
+    'PVORIE_N': '4', 'PVORIE_NO': '5', 'PVORIE_O': '6', 'PVORIE_ZO': '7',
+}
+
+# PV-VELD_BOUWINTRG → VABI Bouwintegratie (0=niet, 1=zwak, 2=matig, 3=sterk)
+_PV_BOUWINTGR_MAP = {
+    'PVINTGR_NIET': '0', 'PVINTGR_ZWAKVENT': '1',
+    'PVINTGR_MATIGVENT': '2', 'PVINTGR_STERKVENT': '3',
+}
+
+# TAPW-DOUCHE_TYPE → VABI TypeDWTW (0=pijp, 1=plaat)
+_DWTW_TYPE_MAP = {
+    'TAPW-DOUCHE_TYPE_PIJP':  '0',
+    'TAPW-DOUCHE_TYPE_PLAAT': '1',
+}
+
+# TAPW-DOUCHE_WIJZE → VABI AansluitwijzeDWTW (0=kraan, 1=douchekop)
+_DWTW_WIJZE_MAP = {
+    'TAPW-DOUCHE_WIJZE_KRAAN':  '0',
+    'TAPW-DOUCHE_WIJZE_DOUCHE': '1',
+}
+
 # ─── HULPFUNCTIES ─────────────────────────────────────────────────────────────
 
 def _guid():
@@ -411,6 +435,27 @@ def _build_installatie(data: Uniec3Data) -> dict:
         opwek = data.first_child(tapw_ent['NTAEntityDataId'], 'TAPW-OPWEK')
         if opwek:
             info['tapw_type'] = _resolve_tapw_type(opwek)
+
+    # Douche-WTW (TAPW-DOUCHE is kind van TAPW)
+    dwtw_info = None
+    if tapw_ent:
+        douche = data.first_child(tapw_ent['NTAEntityDataId'], 'TAPW-DOUCHE')
+        if douche:
+            rend_raw = (_prop(douche, 'TAPW-DOUCHE_REND')
+                        or _prop(douche, 'TAPW-DOUCHE_REND_NON'))
+            rend = None
+            if rend_raw:
+                try:
+                    rend = float(rend_raw.replace(',', '.'))
+                except ValueError:
+                    pass
+            dwtw_info = {
+                'aant':  _prop(douche, 'TAPW-DOUCHE_AANT_TOT') or '0',
+                'type':  _DWTW_TYPE_MAP.get(_prop(douche, 'TAPW-DOUCHE_TYPE'), '-1'),
+                'wijze': _DWTW_WIJZE_MAP.get(_prop(douche, 'TAPW-DOUCHE_WIJZE'), '-1'),
+                'rend':  _fmt(rend, 3) if rend is not None else '0.000',
+            }
+    info['dwtw_info'] = dwtw_info
 
     return info
 
@@ -729,6 +774,13 @@ def _process_unit(data: Uniec3Data, unit: dict,
                 except ValueError:
                     pass
 
+    # PV-VELDs die direct aan deze UNIT gekoppeld zijn (per-woning PV)
+    pv_velden_unit = []
+    for pv_veld in data.children(uid, 'PV-VELD'):
+        pv_parent = data.first_parent(pv_veld['NTAEntityDataId'], 'PV')
+        wp = _num(pv_parent, 'PV_WPPNL_NON') if pv_parent else None
+        pv_velden_unit.append(_process_pv_veld(pv_veld, wp))
+
     subtype, ligging = _resolve_woningpositie(unit)
     return {
         'naam': naam, 'straat': straat, 'huisnummer': huisnr, 'huisletter': huisletter,
@@ -737,6 +789,7 @@ def _process_unit(data: Uniec3Data, unit: dict,
         'rekenzones': rekenzones,
         'subtype': subtype, 'ligging': ligging,
         'qv10_gemeten': qv10_gemeten, 'qv10_waarde': qv10_waarde,
+        'pv_velden_unit': pv_velden_unit,
     }
 
 
@@ -994,6 +1047,95 @@ def _xml_leidingen(parent: Element, tag: str):
     _xml_text(el, 'WarmtegeleidingLeidingmateriaal', '0.000')
 
 
+def _process_pv_veld(pv_veld: dict, wp_per_panel: float | None) -> dict:
+    """Verwerk een PV-VELD entiteit naar een dict voor ZonneEnergie XML."""
+    ori_raw = _prop(pv_veld, 'PV-VELD_ORIE')
+    ori_naam = ori_raw.replace('PVORIE_', '') if ori_raw else ''
+    belem_raw = _prop(pv_veld, 'PV-VELD_BELEM')
+    return {
+        'ori_naam':      ori_naam,
+        'orientatie':    _PV_ORI_MAP.get(ori_raw, '0'),
+        'aantal_panelen': int(_num(pv_veld, 'PV-VELD_AANTALPNL') or 0),
+        'opp_paneel':    _num(pv_veld, 'PV-VELD_AANTALM2') or 0.0,
+        'helling':       int(_num(pv_veld, 'PV-VELD_HELLING') or 0),
+        'bouwintegratie': _PV_BOUWINTGR_MAP.get(_prop(pv_veld, 'PV-VELD_BOUWINTRG'), '0'),
+        'invoer_beschad': '1' if belem_raw == 'BELEMTYPE_MIN' else '-1',
+        'belem':         '0',
+        'wp_per_panel':  wp_per_panel or 0.0,
+    }
+
+
+def _xml_zonne_energie(parent: Element, pv: dict, index: int):
+    """Schrijft één ZonneEnergie (PV) item conform VABI 11.x."""
+    ze = SubElement(parent, 'ZonneEnergie')
+    ze.set('Index', str(index))
+    _xml_text(ze, 'Guid', _guid())
+    ori = pv.get('ori_naam', '')
+    _xml_text(ze, 'Naam', f'PV-systeem {ori}' if ori else 'PV-systeem')
+    _xml_empty(ze, 'Merk')
+    _xml_empty(ze, 'Type')
+    _xml_text(ze, 'Installatiejaar', '0')
+    _xml_text(ze, 'ZonneEnergiesysteem', '0')
+    _xml_text(ze, 'OphalenBcrg', '1')
+    _xml_text(ze, 'KwaliteitsverklaringId', _ZERO_GUID)
+    _xml_empty(ze, 'KwaliteitsverklaringMerk')
+    _xml_empty(ze, 'KwaliteitsverklaringType')
+    _xml_text(ze, 'OppervlakPaneel', _fmt(pv.get('opp_paneel', 0), 2))
+    _xml_text(ze, 'AantalPanelen', str(pv.get('aantal_panelen', 0)))
+    _xml_text(ze, 'Hellingshoek', str(pv.get('helling', 0)))
+    _xml_text(ze, 'Orientatie', pv.get('orientatie', '0'))
+    _xml_text(ze, 'InvoerBeschaduwing', pv.get('invoer_beschad', '-1'))
+    _xml_text(ze, 'ZijBelemmeringZonneEnergie', '-1')
+    _xml_text(ze, 'RelatieveBreedteZijbelemmeringZonneEnergie', '-1')
+    _xml_text(ze, 'Belemmering', pv.get('belem', '0'))
+    _xml_text(ze, 'HoogteverschilMiddenBovenstePunt', '0.00')
+    _xml_text(ze, 'AfstandMiddenBovenstePunt', '0.00')
+    _xml_text(ze, 'PercentageVanZichtveld', '0')
+    _xml_text(ze, 'ZijbelemmeringLinks', '0')
+    _xml_text(ze, 'AfstandVerstePuntMiddenLinks', '0.00')
+    _xml_text(ze, 'BreedteVerstePuntVlakLinks', '0.00')
+    _xml_text(ze, 'ZijbelemmeringRechts', '0')
+    _xml_text(ze, 'AfstandVerstePuntMiddenRechts', '0.00')
+    _xml_text(ze, 'BreedteVerstePuntVlakRechts', '0.00')
+    _xml_text(ze, 'Overstek', '0')
+    _xml_text(ze, 'HoogteverschilVerticaal', '0.00')
+    _xml_text(ze, 'HoogteverschilHorizontaal', '0.00')
+    _xml_text(ze, 'PercentageVanZichtveldOverstek', '0')
+    _xml_text(ze, 'PiekvermogenPVPanelen', '0')
+    _xml_text(ze, 'WattpiekvermogenPVPanelen', _fmt(pv.get('wp_per_panel', 0), 2))
+    _xml_empty(ze, 'CodePVPanelen')
+    _xml_text(ze, 'FabricagejaarPVPanelen', '-1')
+    _xml_text(ze, 'Bouwintegratie', pv.get('bouwintegratie', '0'))
+    _xml_text(ze, 'TypeCollector', '0')
+    _xml_text(ze, 'Zonbijdrage', '0.00')
+    _xml_text(ze, 'Hulpenergie', '0.00')
+    _xml_text(ze, 'WarmteverliesVat', '0.00')
+    _xml_text(ze, 'PvtSysteemGetestConformNEN', '0')
+    _xml_empty(ze, 'CodeZonneboiler')
+    _xml_text(ze, 'CollectorParametersBekend', '0')
+    _xml_text(ze, 'N0', '0.000')
+    _xml_text(ze, 'A1', '0.000')
+    _xml_text(ze, 'A2', '0.000')
+    _xml_text(ze, 'Khem', '0.000')
+    _xml_empty(ze, 'CodeZonnecollector')
+    _xml_text(ze, 'WarmteTbv', '-1')
+    _xml_text(ze, 'Naverwarming', '-1')
+    _xml_text(ze, 'VolumeVoorraadvat', '0.00')
+    _xml_text(ze, 'BackupVolumeBekend', '0')
+    _xml_text(ze, 'BackupVolume', '0.00')
+    _xml_text(ze, 'VoorraadvatAangeslotenOpTapwatersysteem', '-1')
+    _xml_text(ze, 'WarmteverliezenVoorraadvatObv', '-1')
+    _xml_text(ze, 'Warmteoverdrachtscoefficient', '0.00')
+    _xml_empty(ze, 'CodeZonneboilerVoorraadvat')
+    _xml_text(ze, 'EnergielabelOpslagvat', '-1')
+    _xml_text(ze, 'FabricagejaarVoorraadvat', '-1')
+    _xml_text(ze, 'RegeneratieKwaliteitsverklaring', '0')
+    _xml_text(ze, 'RegeneratieKwaliteitsverklaringRendement', '0.00')
+    _xml_empty(ze, 'RegeneratieKwaliteitsverklaringCode')
+    _xml_text(ze, 'Bron', '1')
+    _xml_empty(ze, 'Opmerkingen')
+
+
 def _xml_installatie(parent: Element, info: dict, index: int):
     """Schrijft een volledige Installatie conform VABI 11.x formaat."""
     inst = SubElement(parent, 'Installatie')
@@ -1206,9 +1348,21 @@ def _xml_installatie(parent: Element, info: dict, index: int):
     _xml_text(tw_vat, 'FabricagejaarBuffervat', '-1')
     _xml_text(tw_vat, 'VatBinnenThermischeZone', '0')
     _xml_empty(tw_vat, 'Code')
-    _xml_text(tw_sys, 'DwtwAanwezig', '0')
-    _xml_text(tw_sys, 'AantalDouches', '0')
-    _xml_list(tw_sys, 'TapwaterDwtwList')
+    dwtw = info.get('dwtw_info')
+    _xml_text(tw_sys, 'DwtwAanwezig', '1' if dwtw else '0')
+    _xml_text(tw_sys, 'AantalDouches', dwtw['aant'] if dwtw else '0')
+    tw_dwtw_list = _xml_list(tw_sys, 'TapwaterDwtwList')
+    tw_dwtw = SubElement(tw_dwtw_list, 'TapwaterDwtw')
+    tw_dwtw.set('Index', '0')
+    _xml_text(tw_dwtw, 'Guid', _guid())
+    _xml_text(tw_dwtw, 'AantalAangeslotenDouches', dwtw['aant'] if dwtw else '0')
+    _xml_text(tw_dwtw, 'AansluitwijzeDWTW', dwtw['wijze'] if dwtw else '-1')
+    _xml_text(tw_dwtw, 'TypeDWTW', dwtw['type'] if dwtw else '-1')
+    _xml_text(tw_dwtw, 'Rendement', dwtw['rend'] if dwtw else '0.000')
+    _xml_empty(tw_dwtw, 'Code')
+    _xml_empty(tw_dwtw, 'KwaliteitsverklaringMerkDwtw')
+    _xml_empty(tw_dwtw, 'KwaliteitsverklaringTypeDwtw')
+    _xml_text(tw_dwtw, 'KwaliteitsverklaringIdDwtw', _ZERO_GUID)
     _xml_text(tw_sys, 'LeidinglengteNaarKeuken', '1')
     _xml_text(tw_sys, 'LeidinglengteNaarBadkamer', '2')
     _xml_text(tw_sys, 'Leidinglengte', '-1')
@@ -1238,7 +1392,11 @@ def _xml_installatie(parent: Element, info: dict, index: int):
     _xml_empty(tw, 'Opmerkingen')
 
     # ZonneEnergieList
-    _xml_list(inst, 'ZonneEnergieList')
+    ze_list = SubElement(inst, 'ZonneEnergieList')
+    ze_list.set('Index', '-1')
+    _xml_text(ze_list, 'Guid', _ZERO_GUID)
+    for i, pv_veld in enumerate(info.get('pv_velden', [])):
+        _xml_zonne_energie(ze_list, pv_veld, i)
 
     # VochtRegeling
     vr = SubElement(inst, 'VochtRegeling')
@@ -1555,7 +1713,8 @@ def _xml_rekenzone_algemeen(parent: Element, go: float | None,
 
 
 def _xml_object(parent: Element, woning: dict, index: int,
-                gebouwhoogte: float = 0.0, opnamedatum: str = ''):
+                gebouwhoogte: float = 0.0, opnamedatum: str = '',
+                geen_fossil: bool = False):
     obj = SubElement(parent, 'Object')
     obj.set('Index', str(index))
     _xml_text(obj, 'Guid', _guid())
@@ -1664,6 +1823,7 @@ def _xml_object(parent: Element, woning: dict, index: int,
     _xml_text(oc, 'Daktype', '-1')
     _xml_text(oc, 'AantalWoonfuncties', '0')
     _xml_text(oc, 'Gebouwhoogte', _fmt(gebouwhoogte))
+    _xml_text(oc, 'GeenFossieleBrandstoffenOpPerceel', '1' if geen_fossil else '0')
 
     # Adresgegevens
     adr = SubElement(obj_alg, 'Adresgegevens')
@@ -1826,6 +1986,35 @@ def convert(uniec3_bytes: bytes, project_naam: str = '') -> bytes:
         if w:
             woningen.append(w)
 
+    # Geen fossiele brandstoffen: controleer OVERIG entiteit of leid af uit installatie-types
+    geen_fossil = False
+    for overig in data.entities_by_type.get('OVERIG', []):
+        if _prop(overig, 'OVERIG_INST_CO2_EM') == 'OVERIG_CO2_EM_NIET':
+            geen_fossil = True
+            break
+    if not geen_fossil:
+        geen_fossil = (inst_info['verw_type'] not in ('1', '2', '3', '10', '16')
+                       and inst_info['tapw_type'] not in ('1', '5'))
+
+    # PV: verzamel PV-VELDs zonder UNIT-koppeling (per-gebouw PV)
+    geb_pv_velden: list[dict] = []
+    for pv_ent in data.entities_by_type.get('PV', []):
+        wp = _num(pv_ent, 'PV_WPPNL_NON')
+        for pv_veld in data.children(pv_ent['NTAEntityDataId'], 'PV-VELD'):
+            if not data.parents(pv_veld['NTAEntityDataId'], 'UNIT'):
+                geb_pv_velden.append(_process_pv_veld(pv_veld, wp))
+
+    # Per-woning PV: neem PV-VELDs van de eerste woning per rekenzonetype
+    rztype_to_pv: dict[str, list] = {}
+    for w in woningen:
+        unit_pv = w.get('pv_velden_unit', [])
+        if not unit_pv:
+            continue
+        for rz in w.get('rekenzones', []):
+            rz_type_id = rz['rz_type_id']
+            if rz_type_id not in rztype_to_pv:
+                rztype_to_pv[rz_type_id] = unit_pv
+
     # Bouw één installatie per uniek UNIT-RZID (= rekenzonetype).
     # Alle type-A rekenzones (zelfde UNIT-RZID) delen dezelfde installatie-GUID;
     # hetzelfde geldt voor type B, C, etc.
@@ -1886,7 +2075,8 @@ def convert(uniec3_bytes: bytes, project_naam: str = '') -> bytes:
     insts.set('Index', '-1')
     _xml_text(insts, 'Guid', _ZERO_GUID)
     for i, (rz_type_id, inst_guid) in enumerate(rztype_to_inst_guid.items()):
-        inst_data = dict(inst_info, guid=inst_guid)
+        pv_velden = rztype_to_pv.get(rz_type_id, []) + geb_pv_velden
+        inst_data = dict(inst_info, guid=inst_guid, pv_velden=pv_velden)
         _xml_installatie(insts, inst_data, i)
 
     # Constructies
@@ -1916,7 +2106,8 @@ def convert(uniec3_bytes: bytes, project_naam: str = '') -> bytes:
     objecten.set('Index', '-1')
     _xml_text(objecten, 'Guid', _ZERO_GUID)
     for i, w in enumerate(woningen):
-        _xml_object(objecten, w, i, gebouwhoogte=gebouwhoogte, opnamedatum=opnamedatum)
+        _xml_object(objecten, w, i, gebouwhoogte=gebouwhoogte, opnamedatum=opnamedatum,
+                    geen_fossil=geen_fossil)
 
     # Energieplannen
     ep = SubElement(root, 'Energieplannen')
@@ -2097,7 +2288,7 @@ def parse_uniec3(uniec3_bytes: bytes, project_naam: str = '') -> dict:
 
     dwellings = []
     for i, unit in enumerate(units):
-        raw = _process_unit(data, unit, reg, inst_info['guid'])
+        raw = _process_unit(data, unit, reg)
         if raw is None:
             continue
         hvs      = [_adapt_hoofdvlak(hv)

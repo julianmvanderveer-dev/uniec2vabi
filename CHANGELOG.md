@@ -4,7 +4,25 @@ Versiegeschiedenis van het Uniec2Vabi project (Brynt.nl). Nieuwste versie bovena
 
 ---
 
-## v50 — 2026-11-02 — (pending)
+## v51 — 2026-11-02 — (pending)
+**Commit:** PV ZonneEnergieList (K), Douche-WTW (L), fossiele brandstoffen vinkje (M)
+**Wijzigingen:**
+- K: ZonneEnergieList per installatie gevuld vanuit PV/PV-VELD entiteiten (Uniec3 → VABI)
+  - Per-woning PV: PV-VELD gekoppeld aan UNIT → in installatie voor dat rekenzonetype
+  - Per-gebouw PV: PV-VELD alleen gekoppeld aan PV → in alle installaties
+  - OppervlakPaneel, AantalPanelen, Hellingshoek, Orientatie, Bouwintegratie, WattpiekvermogenPVPanelen, InvoerBeschaduwing ingevuld
+- L: TapwaterDwtwList per tapwatersysteem gevuld vanuit TAPW-DOUCHE entiteit
+  - DwtwAanwezig=1 en AantalDouches gevuld als TAPW-DOUCHE aanwezig
+  - AantalAangeslotenDouches, AansluitwijzeDWTW, TypeDWTW, Rendement ingevuld
+  - Altijd één TapwaterDwtw item (ook als leeg, conform VABI-referentie)
+- M: GeenFossieleBrandstoffenOpPerceel toegevoegd aan ObjectClassificatie
+  - Primair: OVERIG_INST_CO2_EM == OVERIG_CO2_EM_NIET → geen fossiel
+  - Fallback: verwarming+tapwater niet op gas/WKK/stadsverwarming → geen fossiel
+- Bugfix: parse_uniec3 aanroep _process_unit had onjuist 4e argument (inst_guid)
+
+---
+
+## v50 — 2026-11-02 — 8bb0d8e
 **Commit:** Installaties per rekenzonetype via UNIT-RZID (J)
 **Wijzigingen:**
 - J: Eén VABI-installatie per uniek UNIT-RZID (rekenzonetype A/B/...) i.p.v. één per project
