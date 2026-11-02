@@ -457,6 +457,61 @@ def _build_installatie(data: Uniec3Data) -> dict:
             }
     info['dwtw_info'] = dwtw_info
 
+    # N: Verwarming eigen waarde (COP, energiefractie, hulpenergie)
+    verw_info = None
+    if verw_ent:
+        opwek = data.first_child(verw_ent['NTAEntityDataId'], 'VERW-OPWEK')
+        if opwek:
+            cop  = _num(opwek, 'VERW-OPWEK_COP_NON')
+            ener = _num(opwek, 'VERW-OPWEK_ENER_NON')
+            hulp = _num(opwek, 'VERW-OPWEK_TOE_NON')
+            if cop:
+                verw_info = {
+                    'cop':           _fmt(cop, 3),
+                    'energiefractie': _fmt(ener, 3) if ener is not None else '1.000',
+                    'hulpenergie':   _fmt(hulp, 2) if hulp else '0.00',
+                    'hulp_aanwezig': bool(hulp and hulp > 0),
+                }
+    info['verw_info'] = verw_info
+
+    # O: Tapwater voorraadvat (volume, aantal)
+    tapw_vat_info = None
+    if tapw_ent:
+        vat = data.first_child(tapw_ent['NTAEntityDataId'], 'TAPW-VAT')
+        if vat:
+            vol      = _num(vat, 'TAPW-VAT_VOL_A')
+            aant_raw = _prop(vat, 'TAPW-VAT_AANT')
+            try:
+                aant = int(float(aant_raw.replace(',', '.'))) if aant_raw else 1
+            except ValueError:
+                aant = 1
+            tapw_vat_info = {
+                'volume': str(int(vol)) if vol else '0',
+                'aantal': str(aant),
+            }
+    info['tapw_vat_info'] = tapw_vat_info
+
+    # P: Ventilatie productspecifieke invoer (fctrl, WTW-rendement, bypass, kanaalisolatie)
+    vent_info = None
+    if vent_ent:
+        fctrl = _num(vent_ent, 'VENT_FCTRL')
+        wtw   = data.first_child(vent_ent['NTAEntityDataId'], 'WARMTETERUG')
+        if fctrl is not None or wtw:
+            rend = _num(wtw, 'WARMTETERUG_REND') if wtw else None
+            bypa = _num(wtw, 'WAMRTETERUG_BYPA') if wtw else None  # typfout in Uniec3
+            diam = _num(wtw, 'WARMTETERUG_TOEI') if wtw else None
+            lam  = _num(wtw, 'WARMTETERUG_COE')  if wtw else None
+            vent_info = {
+                'fctrl':      _fmt(fctrl, 2) if fctrl is not None else '1.00',
+                'wtw_rend':   _fmt(rend, 3) if rend is not None else None,
+                'bypass_pct': str(int(round((bypa or 0.0) * 100))),
+                'bypass':     '1' if (bypa is not None and bypa > 0) else '-1',
+                'kanaal_diam': str(int(diam)) if diam else '0',
+                'kanaal_lam':  _fmt(lam, 3) if lam is not None else '0.000',
+                'kanaal_iso':  '1' if diam else '-1',
+            }
+    info['vent_info'] = vent_info
+
     return info
 
 
@@ -795,7 +850,7 @@ def _process_unit(data: Uniec3Data, unit: dict,
 
 # ─── XML BOUWERS ──────────────────────────────────────────────────────────────
 
-def _xml_ventilatiesysteem(parent: Element, index: int, primary: bool):
+def _xml_ventilatiesysteem(parent: Element, index: int, primary: bool, vent_info: dict | None = None):
     """Schrijft één Ventilatiesysteem in de VentilatiesysteemList."""
     vs = SubElement(parent, 'Ventilatiesysteem')
     vs.set('Index', str(index))
@@ -819,25 +874,26 @@ def _xml_ventilatiesysteem(parent: Element, index: int, primary: bool):
     _xml_text(vs, 'Recirculatie', '-1')
     _xml_text(vs, 'RecirculatiePercentage', '0')
     _xml_text(vs, 'KwaliteitsverklaringVla', '0')
-    _xml_text(vs, 'FCtrl', '0.00')
+    _xml_text(vs, 'FCtrl', (vent_info['fctrl'] if vent_info else '0.00') if primary else '0.00')
     _xml_empty(vs, 'CodeKvVla')
     _xml_text(vs, 'IsLbkAanwezig', '0')
     _xml_text(vs, 'IsLbkBinnenThermischeSchil', '0')
     _xml_text(vs, 'IsVerwarmingAangeslotenOpLbk', '0')
     _xml_text(vs, 'IsKoelingAangeslotenOpLbk', '0')
-    _xml_text(vs, 'TypeWtw', '-1')
+    _wtw = vent_info if (primary and vent_info and vent_info.get('wtw_rend')) else None
+    _xml_text(vs, 'TypeWtw', '3' if _wtw else '-1')
     _xml_text(vs, 'Volumeregeling', '-1')
-    _xml_text(vs, 'Bypass', '-1')
-    _xml_text(vs, 'BypassPercentage', '0')
+    _xml_text(vs, 'Bypass', _wtw['bypass'] if _wtw else '-1')
+    _xml_text(vs, 'BypassPercentage', _wtw['bypass_pct'] if _wtw else '0')
     _xml_text(vs, 'BypassFabricagejaar', '-1')
     _xml_text(vs, 'KoudeterugwinningWtw', '0')
-    _xml_text(vs, 'IsolatieKanaalBuitenaansluiting', '-1')
-    _xml_text(vs, 'IsolatieDikteKanaalBuitenaansluiting', '0')
-    _xml_text(vs, 'LambdaKanaalBuitenaansluiting', '0.000')
+    _xml_text(vs, 'IsolatieKanaalBuitenaansluiting', _wtw['kanaal_iso'] if _wtw else '-1')
+    _xml_text(vs, 'IsolatieDikteKanaalBuitenaansluiting', _wtw['kanaal_diam'] if _wtw else '0')
+    _xml_text(vs, 'LambdaKanaalBuitenaansluiting', _wtw['kanaal_lam'] if _wtw else '0.000')
     _xml_text(vs, 'LengteKanaalBuitenaansluiting', '-1')
     _xml_text(vs, 'WerkelijkeLengteKanaalBuitenaansluiting', '0.00')
-    _xml_text(vs, 'TypeVerklaringKvWtw', '-1')
-    _xml_text(vs, 'RendementKvWtw', '0.000')
+    _xml_text(vs, 'TypeVerklaringKvWtw', '2' if _wtw else '-1')
+    _xml_text(vs, 'RendementKvWtw', _wtw['wtw_rend'] if _wtw else '0.000')
     _xml_text(vs, 'RendementKvWtwInclusiefDissipatie', '0')
     _xml_empty(vs, 'CodeKvWtw')
     _xml_text(vs, 'Luchtdichtheidsklasse', '0' if primary else '-1')
@@ -900,7 +956,7 @@ def _xml_koeling_opwekker(parent: Element, index: int):
     _xml_empty(op, 'Code')
 
 
-def _xml_verwarming_opwekker(parent: Element, index: int, verw_type: str = '-1'):
+def _xml_verwarming_opwekker(parent: Element, index: int, verw_type: str = '-1', verw_info: dict | None = None):
     """VABI 11.x VerwarmingOpwekker schema."""
     op = SubElement(parent, 'VerwarmingOpwekker')
     op.set('Index', str(index))
@@ -928,13 +984,14 @@ def _xml_verwarming_opwekker(parent: Element, index: int, verw_type: str = '-1')
     _xml_text(op, 'Opwekkingsvermogen', '0.0')
     _xml_text(op, 'ElektrischVermogenWkk', '0.0')
     _xml_text(op, 'IsAdditioneelGeplaatstBijRenovatie', '0')
-    _xml_text(op, 'KwaliteitsverklaringWarmteopwekker', '0')
+    _kv = verw_info if (index == 0 and verw_info) else None
+    _xml_text(op, 'KwaliteitsverklaringWarmteopwekker', '2' if _kv else '0')
     _xml_text(op, 'KwaliteitsverklaringWarmteopwekkerId', _ZERO_GUID)
     _xml_text(op, 'KwaliteitsverklaringWarmtenet', '-1')
     _xml_text(op, 'TypeBron', '-1')
     _xml_empty(op, 'KwaliteitsverklaringMerk')
-    _xml_text(op, 'KwaliteitsverklaringRendement', '0.000')
-    _xml_text(op, 'KwaliteitsverklaringEnergiefractie', '0.000')
+    _xml_text(op, 'KwaliteitsverklaringRendement', _kv['cop'] if _kv else '0.000')
+    _xml_text(op, 'KwaliteitsverklaringEnergiefractie', _kv['energiefractie'] if _kv else '0.000')
     _xml_text(op, 'KwaliteitsverklaringBronHTWarmtepomp', '-1')
     _xml_text(op, 'KwaliteitsverklaringPrimaireEnergiefactor', '0.0000')
     _xml_text(op, 'KwaliteitsverklaringPrimaireEnergiefactorUitsluitendGemeten', '0')
@@ -946,8 +1003,8 @@ def _xml_verwarming_opwekker(parent: Element, index: int, verw_type: str = '-1')
     _xml_text(op, 'KwaliteitsverklaringLuchtdebietToestel', '0.0')
     _xml_text(op, 'KwaliteitsverklaringModulerendeWarmtepomp', '0')
     _xml_empty(op, 'KwaliteitsverklaringCode')
-    _xml_text(op, 'Hulpenergie', '0')
-    _xml_text(op, 'HulpenergieTypeVerklaring', '0')
+    _xml_text(op, 'Hulpenergie', '1' if (_kv and _kv['hulp_aanwezig']) else '0')
+    _xml_text(op, 'HulpenergieTypeVerklaring', '2' if (_kv and _kv['hulp_aanwezig']) else '0')
     _xml_text(op, 'HulpenergieInvoermethode', '0')
     _xml_text(op, 'HulpenergieId', _ZERO_GUID)
     _xml_empty(op, 'HulpenergieMerk')
@@ -956,7 +1013,7 @@ def _xml_verwarming_opwekker(parent: Element, index: int, verw_type: str = '-1')
     _xml_text(op, 'HulpenergieConstanteB', '0.0000000000')
     _xml_text(op, 'HulpenergieConstanteC', '0.0000000000')
     _xml_text(op, 'HulpenergieBNominaal', '0.00')
-    _xml_text(op, 'HulpenergieWaux', '0.00')
+    _xml_text(op, 'HulpenergieWaux', _kv['hulpenergie'] if (_kv and _kv['hulp_aanwezig']) else '0.00')
     _xml_empty(op, 'HulpenergieCode')
     _xml_text(op, 'HulpenergieFabricagejaarToestel', '-1')
     _xml_text(op, 'FabricagejaarToestelWkk', '-1')
@@ -1159,7 +1216,7 @@ def _xml_installatie(parent: Element, info: dict, index: int):
     _xml_text(vent, 'AantalIdentiekeSystemenAuto', '1')
     _xml_text(vent, 'Ventilatiesysteem', info['vent_sys'])
     vs_list = _xml_list(vent, 'VentilatiesysteemList')
-    _xml_ventilatiesysteem(vs_list, 0, primary=True)
+    _xml_ventilatiesysteem(vs_list, 0, primary=True, vent_info=info.get('vent_info'))
     _xml_ventilatiesysteem(vs_list, 1, primary=False)
     _xml_text(vent, 'Bron', '1')
     _xml_empty(vent, 'Opmerkingen')
@@ -1234,7 +1291,7 @@ def _xml_installatie(parent: Element, info: dict, index: int):
     _xml_text(vw, 'AantalWarmteopwekkers', '0')
     vw_list = _xml_list(vw, 'VerwarmingOpwekkerList')
     for i in range(3):
-        _xml_verwarming_opwekker(vw_list, i, verw_type=info['verw_type'] if i == 0 else '-1')
+        _xml_verwarming_opwekker(vw_list, i, verw_type=info['verw_type'] if i == 0 else '-1', verw_info=info.get('verw_info'))
 
     # VerwarmingAfgifte
     va = SubElement(inst, 'VerwarmingAfgifte')
@@ -1332,8 +1389,9 @@ def _xml_installatie(parent: Element, info: dict, index: int):
     tw_vat = SubElement(tw_vat_list, 'TapwaterVoorraadvat')
     tw_vat.set('Index', '0')
     _xml_text(tw_vat, 'Guid', _guid())
-    _xml_text(tw_vat, 'Aantal', '0')
-    _xml_text(tw_vat, 'Volume', '0')
+    _vat = info.get('tapw_vat_info')
+    _xml_text(tw_vat, 'Aantal', _vat['aantal'] if _vat else '0')
+    _xml_text(tw_vat, 'Volume', _vat['volume'] if _vat else '0')
     _xml_text(tw_vat, 'Kwaliteitsverklaring', '0')
     _xml_text(tw_vat, 'KwaliteitsverklaringId', _ZERO_GUID)
     _xml_empty(tw_vat, 'KwaliteitsverklaringMerk')

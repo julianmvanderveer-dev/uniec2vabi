@@ -4,6 +4,25 @@ Versiegeschiedenis van het Uniec2Vabi project (Brynt.nl). Nieuwste versie bovena
 
 ---
 
+## v52 — 2026-11-02 — (pending)
+**Commit:** Verwarming eigenwaarde (N), voorraadvat (O), ventilatie WTW (P)
+**Wijzigingen:**
+- N: VerwarmingOpwekker eigenwaarde COP/energiefractie/hulpenergie uit VERW-OPWEK
+  - KwaliteitsverklaringWarmteopwekker=2 (eigen waarde) als COP_NON aanwezig
+  - KwaliteitsverklaringRendement ← VERW-OPWEK_COP_NON
+  - KwaliteitsverklaringEnergiefractie ← VERW-OPWEK_ENER_NON
+  - HulpenergieWaux ← VERW-OPWEK_TOE_NON (W), HulpenergieTypeVerklaring=2
+- O: TapwaterVoorraadvat Volume en Aantal uit TAPW-VAT
+  - Volume ← TAPW-VAT_VOL_A, Aantal ← TAPW-VAT_AANT
+- P: Ventilatiesysteem productspecifieke invoer uit VENT + WARMTETERUG
+  - FCtrl ← VENT_FCTRL
+  - TypeWtw=3 (tegenstroom), TypeVerklaringKvWtw=2 (eigen waarde) als WTW aanwezig
+  - RendementKvWtw ← WARMTETERUG_REND
+  - Bypass/BypassPercentage ← WARMTETERUG BYP/BYPA
+  - IsolatieKanaalBuitenaansluiting ← WARMTETERUG_TOEI (mm), LambdaKanaal ← WARMTETERUG_COE
+
+---
+
 ## v51 — 2026-11-02 — (pending)
 **Commit:** PV ZonneEnergieList (K), Douche-WTW (L), fossiele brandstoffen vinkje (M)
 **Wijzigingen:**
