@@ -4,7 +4,7 @@ Versiegeschiedenis van het Uniec2Vabi project (Brynt.nl). Nieuwste versie bovena
 
 ---
 
-## v52 — 2026-11-02 — (pending)
+## v52 — 2026-11-02 — 59a23b6
 **Commit:** Verwarming eigenwaarde (N), voorraadvat (O), ventilatie WTW (P)
 **Wijzigingen:**
 - N: VerwarmingOpwekker eigenwaarde COP/energiefractie/hulpenergie uit VERW-OPWEK
@@ -23,7 +23,7 @@ Versiegeschiedenis van het Uniec2Vabi project (Brynt.nl). Nieuwste versie bovena
 
 ---
 
-## v51 — 2026-11-02 — (pending)
+## v51 — 2026-11-02 — 76094a0
 **Commit:** PV ZonneEnergieList (K), Douche-WTW (L), fossiele brandstoffen vinkje (M)
 **Wijzigingen:**
 - K: ZonneEnergieList per installatie gevuld vanuit PV/PV-VELD entiteiten (Uniec3 → VABI)
