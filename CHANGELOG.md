@@ -4,6 +4,17 @@ Versiegeschiedenis van het Uniec2Vabi project (Brynt.nl). Nieuwste versie bovena
 
 ---
 
+## v56 — 2026-11-17
+**Commit:** Ramen/deuren Invoer=2 (U-waarde) i.p.v. Invoer=4 (Rc-waarde)
+**Wijzigingen:**
+- Bugfix: transparante constructies (ramen + deuren) kregen Invoer=4 (Rc-waarde) waardoor VABI U=0.00 en g=0.00 toonde
+  - Ramen (ConstructieType=2): Invoer=2, UGlas=Uw totaal
+  - Deuren (ConstructieType=3): Invoer=2, UKozijn=Ud totaal
+  - Opaque (muren/daken/vloeren): Invoer=4 ongewijzigd
+  - Herstel van vóór v47 wijziging die UGlas/UKozijn naar 0 zette
+
+---
+
 ## v55 — 2026-11-17
 **Commit:** Tapwater TypeOpwekker systeemniveau: 3→0
 **Wijzigingen:**

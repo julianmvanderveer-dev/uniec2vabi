@@ -1489,9 +1489,9 @@ def _xml_constructie(parent: Element, c: dict, index: int):
     u_str  = _fmt(c.get('u'))
     rc_str = _fmt(c.get('rc'))
     g_str  = _fmt(c.get('g'))
-    # Invoer=4 voor alle typen (overeenkomstig EPA referentieformaat VABI 11.x)
-    # Opaque: Rc in <Rc>; transparent: Uw totaal in <U>, UGlas/UKozijn altijd 0
-    _xml_text(co, 'Invoer', '4')
+    # Opaque: Invoer=4 (Rc-waarde); transparant: Invoer=2 (U-waarde invoer)
+    # Ramen: UGlas=Uw totaal; deuren: UKozijn=Ud totaal; opaque: Rc in <Rc>
+    _xml_text(co, 'Invoer', '4' if is_opaque else '2')
     _xml_text(co, 'KwaliteitsverklaringInvoermethode', '0')
     _xml_text(co, 'OppervlaktePerConstructie', '0')
     _xml_text(co, 'Oppervlakte', '0.00')
@@ -1505,8 +1505,8 @@ def _xml_constructie(parent: Element, c: dict, index: int):
     _xml_empty(co, 'KwaliteitsverklaringAfstandhouder')
     _xml_empty(co, 'KwaliteitsverklaringType')
     _xml_empty(co, 'KwaliteitsverklaringIsolatieDikte')
-    _xml_text(co, 'UKozijn', '0.00')  # Uw totaal zit in <U>; UKozijn altijd 0
-    _xml_text(co, 'UGlas', '0.00')   # Uw totaal zit in <U>; UGlas altijd 0
+    _xml_text(co, 'UKozijn', u_str if is_deur else '0.00')
+    _xml_text(co, 'UGlas', u_str if is_raam else '0.00')
     _xml_text(co, 'PsiGlas', '0.000')
     _xml_text(co, 'OmtrekBeglazing', '0.00')
     _xml_text(co, 'PsiGlasroede', '0.000')
