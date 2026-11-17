@@ -656,9 +656,15 @@ def _process_begr(data: Uniec3Data, begr: dict, reg: ConstructieRegistry) -> dic
 
         dv_breedte = _num(constrt, 'CONSTRT_B') or 0.0
         dv_lengte  = _num(constrt, 'CONSTRT_L') or 0.0
-        # OppervlaktePerConstructie: B×L als beide bekend, anders CONSTRT_A
-        opp_per_unit = (dv_breedte * dv_lengte) if (dv_breedte and dv_lengte) else ct_area
-        # Registry-key bevat opp_per_unit zodat verschillende maten van hetzelfde kozijntype apart staan
+        ct_aant    = _num(constrt, 'CONSTRT_AANT') or 0.0
+        # OppervlaktePerConstructie: voorkeur B×L; anders CONSTRT_OPP/CONSTRT_AANT; fallback ct_area
+        if dv_breedte and dv_lengte:
+            opp_per_unit = dv_breedte * dv_lengte
+        elif ct_aant and ct_aant > 0 and ct_area:
+            opp_per_unit = ct_area / ct_aant
+        else:
+            opp_per_unit = ct_area
+        # Registry-key bevat opp_per_unit zodat kozijnen van hetzelfde type maar verschillende maten apart staan
         dv_guid = reg.get_or_create(naam=dv_naam, constr_type=dv_type, u=u_val, g=g_val,
                                     opp_per_unit=opp_per_unit)
 
