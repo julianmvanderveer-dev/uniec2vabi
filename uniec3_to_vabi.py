@@ -1858,9 +1858,9 @@ def _xml_object(parent: Element, woning: dict, index: int,
     obj_obj.set('Index', '-1')
     _xml_text(obj_obj, 'Guid', _guid())
     _xml_text(obj_obj, 'NaamObject', woning['naam'])
-    _xml_text(obj_obj, 'Objecttype', 'Woning')
-    _xml_text(obj_obj, 'Bouwfase', 'Oplevering')
-    _xml_text(obj_obj, 'Opname', 'Detailopname')
+    _xml_text(obj_obj, 'Objecttype', '0')
+    _xml_text(obj_obj, 'Bouwfase', '1')
+    _xml_text(obj_obj, 'Opname', '1')
     has_kb = any(kb
                  for rz in woning.get('rekenzones', [])
                  for hv in rz.get('hoofdvlakken', [])
@@ -1921,7 +1921,7 @@ def _xml_object(parent: Element, woning: dict, index: int,
     _xml_empty(adr, 'RefBagLigplaatsId')
     _xml_empty(adr, 'RefBagnummerObject')
 
-    _xml_text(obj_alg, 'Registratiestatus', 'Object is niet geregistreerd')
+    _xml_text(obj_alg, 'Registratiestatus', '0')
 
     # RegistratiegegevensInvoer
     reg_inv = SubElement(obj_alg, 'RegistratiegegevensInvoer')
@@ -1986,7 +1986,7 @@ def _xml_object(parent: Element, woning: dict, index: int,
     _xml_text(wws_alg, 'Guid', _guid())
     _xml_text(wws_alg, 'Status', '0')
     _xml_text(wws_alg, 'Monument', '0')
-    _xml_text(wws_alg, 'OnzelfstandigeWoning', 'false')
+    _xml_text(wws_alg, 'OnzelfstandigeWoning', '0')
     _xml_text(wws_alg, 'OppervlakteOnzelfstandigeWoning', '0.00')
     _xml_text(wws_alg, 'OppervlakteGemeenschappelijkeDelen', '0.00')
     _xml_text(wws_alg, 'AantalOnzelfstandigeDelenBinnenObject', '0')
