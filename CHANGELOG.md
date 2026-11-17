@@ -4,6 +4,37 @@ Versiegeschiedenis van het Uniec2Vabi project (Brynt.nl). Nieuwste versie bovena
 
 ---
 
+## v55 — 2026-11-17
+**Commit:** Tapwater TypeOpwekker systeemniveau: 3→0
+**Wijzigingen:**
+- Bugfix: TypeOpwekker op Tapwatersysteem-niveau stond hardgecodeerd op '3'
+  - In VABI is TypeOpwekker op systeemniveau '0' (actief) of '-1' (inactief)
+  - Waarde '3' (elektrisch boiler) is alleen geldig op TapwaterOpwekker.TypeToestel-niveau
+  - Veroorzaakte Enum mismatch bij laden in VABI
+
+---
+
+## v54 — 2026-11-17
+**Commit:** Stadsverwarming KwaliteitsverklaringWarmteopwekker fix
+**Wijzigingen:**
+- Bugfix: KwaliteitsverklaringWarmteopwekker=2 (eigen waarde) werd ook gezet voor stadsverwarming (TypeOpwekker=10), WKK (3), etc.
+  - Eigen waarde is alleen geldig voor ketels (TypeOpwekker=1,2) en warmtepompen (8)
+  - Voor stadsverwarming/WKK: altijd forfaitaire invoer (KwaliteitsverklaringWarmteopwekker=0)
+
+---
+
+## v53 — 2026-11-17 — 4924cde
+**Commit:** Enum mismatch fix — Objecttype/Bouwfase/Opname/Registratiestatus als integer
+**Wijzigingen:**
+- Bugfix: 5 velden hadden string-enum waarden i.p.v. integer-enum
+  - Objecttype: 'woning' → '0'
+  - Bouwfase: 'bestaand' → '1'
+  - Opname: string → '1'
+  - Registratiestatus: string → '0'
+  - OnzelfstandigeWoning: string → '0'
+
+---
+
 ## v52 — 2026-11-02 — 59a23b6
 **Commit:** Verwarming eigenwaarde (N), voorraadvat (O), ventilatie WTW (P)
 **Wijzigingen:**

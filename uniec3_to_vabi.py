@@ -984,7 +984,8 @@ def _xml_verwarming_opwekker(parent: Element, index: int, verw_type: str = '-1',
     _xml_text(op, 'Opwekkingsvermogen', '0.0')
     _xml_text(op, 'ElektrischVermogenWkk', '0.0')
     _xml_text(op, 'IsAdditioneelGeplaatstBijRenovatie', '0')
-    _kv = verw_info if (index == 0 and verw_info) else None
+    # Eigen waarde alleen geldig voor ketels (1,2) en warmtepompen (8), niet voor stadsverwarming (10), WKK (3), etc.
+    _kv = verw_info if (index == 0 and verw_info and verw_type in ('1', '2', '8')) else None
     _xml_text(op, 'KwaliteitsverklaringWarmteopwekker', '2' if _kv else '0')
     _xml_text(op, 'KwaliteitsverklaringWarmteopwekkerId', _ZERO_GUID)
     _xml_text(op, 'KwaliteitsverklaringWarmtenet', '-1')
@@ -1380,7 +1381,7 @@ def _xml_installatie(parent: Element, info: dict, index: int):
     _xml_text(tw_sys, 'AantalBadkamers', '0')
     _xml_text(tw_sys, 'AantalKeukens', '0')
     _xml_text(tw_sys, 'AangeslotenGebruiksoppervlakte', '0.00')
-    _xml_text(tw_sys, 'TypeOpwekker', '3')
+    _xml_text(tw_sys, 'TypeOpwekker', '0')
     _xml_text(tw_sys, 'AantalOpwekkers', '0')
     tw_opw_list = _xml_list(tw_sys, 'TapwaterOpwekkerList')
     _xml_tapwater_opwekker(tw_opw_list, 0, tapw_type=info['tapw_type'])
