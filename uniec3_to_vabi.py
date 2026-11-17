@@ -304,17 +304,19 @@ class ConstructieRegistry:
     def get_or_create(self, naam: str, constr_type: str,
                       rc: float | None = None,
                       u: float | None = None,
-                      g: float | None = None) -> str:
+                      g: float | None = None,
+                      opp_per_unit: float | None = None) -> str:
         rc_s = str(round(rc, 3)) if rc else ''
         u_s = str(round(u, 3)) if u else ''
         g_s = str(round(g, 3)) if g else ''
-        key = f"{naam}|{constr_type}|{rc_s}|{u_s}|{g_s}"
+        opp_s = str(round(opp_per_unit, 4)) if opp_per_unit else ''
+        key = f"{naam}|{constr_type}|{rc_s}|{u_s}|{g_s}|{opp_s}"
         if key in self._by_key:
             return self._by_key[key]
         g_new = _guid()
         self._by_key[key] = g_new
         self._items.append({'guid': g_new, 'naam': naam, 'type': constr_type,
-                            'rc': rc, 'u': u, 'g': g})
+                            'rc': rc, 'u': u, 'g': g, 'opp_per_unit': opp_per_unit})
         return g_new
 
     def items(self):
@@ -630,7 +632,6 @@ def _process_begr(data: Uniec3Data, begr: dict, reg: ConstructieRegistry) -> dic
             lt = _prop(libcrt, 'LIBCONSTRT_TYPE')
             dv_type = LIBCONSTRT_TO_TYPE.get(lt, '2')
             dv_naam = _prop(libcrt, 'LIBCONSTRT_OMSCHR') or ('Raam' if dv_type == '2' else 'Deur')
-        dv_guid = reg.get_or_create(naam=dv_naam, constr_type=dv_type, u=u_val, g=g_val)
 
         # Belemmering (schaduw/obstruction) uitlezen uit BELEMMERING-kind van CONSTRT
         belem_besch = _prop(constrt, 'CONSTRT_BESCH') or ''
@@ -655,6 +656,11 @@ def _process_begr(data: Uniec3Data, begr: dict, reg: ConstructieRegistry) -> dic
 
         dv_breedte = _num(constrt, 'CONSTRT_B') or 0.0
         dv_lengte  = _num(constrt, 'CONSTRT_L') or 0.0
+        # OppervlaktePerConstructie: B×L als beide bekend, anders CONSTRT_A
+        opp_per_unit = (dv_breedte * dv_lengte) if (dv_breedte and dv_lengte) else ct_area
+        # Registry-key bevat opp_per_unit zodat verschillende maten van hetzelfde kozijntype apart staan
+        dv_guid = reg.get_or_create(naam=dv_naam, constr_type=dv_type, u=u_val, g=g_val,
+                                    opp_per_unit=opp_per_unit)
 
         deelvlakken.append({
             'naam': dv_naam, 'guid': dv_guid, 'area': ct_area,
@@ -1493,7 +1499,8 @@ def _xml_constructie(parent: Element, c: dict, index: int):
     # Ramen: UGlas=Uw totaal; deuren: UKozijn=Ud totaal; opaque: Rc in <Rc>
     _xml_text(co, 'Invoer', '4' if is_opaque else '3')
     _xml_text(co, 'KwaliteitsverklaringInvoermethode', '0')
-    _xml_text(co, 'OppervlaktePerConstructie', '0')
+    opp_pu = c.get('opp_per_unit') or 0.0
+    _xml_text(co, 'OppervlaktePerConstructie', _fmt(opp_pu) if (not is_opaque and opp_pu) else '0')
     _xml_text(co, 'Oppervlakte', '0.00')
     _xml_text(co, 'Arc', '0.00')
     _xml_empty(co, 'Merk')

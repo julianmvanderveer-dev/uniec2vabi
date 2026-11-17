@@ -4,6 +4,18 @@ Versiegeschiedenis van het Uniec2Vabi project (Brynt.nl). Nieuwste versie bovena
 
 ---
 
+## v58 — 2026-11-17
+**Commit:** OppervlaktePerConstructie voor kozijnmerken (ramen/deuren) ingevuld
+**Wijzigingen:**
+- Bugfix: OppervlaktePerConstructie stond hardcoded op 0 voor alle constructies
+  - Voor transparante constructies (ramen + deuren): nu ingesteld op B×L (breedte × hoogte per kozijn)
+  - Als B en L niet beschikbaar: CONSTRT_A als fallback
+  - VABI kan hierdoor "aantal kozijnen" correct berekenen en tonen in geometrie-tabblad
+  - Opaque constructies (muren/daken/vloeren): OppervlaktePerConstructie blijft 0
+- Verbeterd: ConstructieRegistry-sleutel bevat nu ook opp_per_unit zodat kozijnen van hetzelfde type maar verschillende maten aparte Constructie-definities krijgen
+
+---
+
 ## v57 — 2026-11-17
 **Commit:** Meerdere enum mismatches opgelost (Status, TypeWtw, Invoer, KwaliteitsverklaringWarmteopwekker, HulpenergieTypeVerklaring, TypeVerklaringKvWtw)
 **Wijzigingen:**
