@@ -4,14 +4,25 @@ Versiegeschiedenis van het Uniec2Vabi project (Brynt.nl). Nieuwste versie bovena
 
 ---
 
+## v57 — 2026-11-17
+**Commit:** Meerdere enum mismatches opgelost (Status, TypeWtw, Invoer, KwaliteitsverklaringWarmteopwekker, HulpenergieTypeVerklaring, TypeVerklaringKvWtw)
+**Wijzigingen:**
+- Bugfix: Status=4 in RegistratiegegevensInvoer → Status=0 (concept); waarde 4 buiten geldige range
+- Bugfix: TypeWtw=3 (WTW-type) → TypeWtw=0 (rekuperator); waarde 3 niet geldig, enum gaat tot 1
+- Bugfix: KwaliteitsverklaringWarmteopwekker=2 → 1; waarde 2 niet geldig, enum: 0=forfait, 1=kwaliteitsverklaring
+- Bugfix: HulpenergieTypeVerklaring=2 → 1 en =0 → -1; waarde 2 en 0 niet geldig, enum: -1=geen, 1=productspecifiek
+- Bugfix: TypeVerklaringKvWtw=2 → 0; waarde 2 niet geldig, enum: -1=geen, 0=forfaitaire
+
+---
+
 ## v56 — 2026-11-17
-**Commit:** Ramen/deuren Invoer=2 (U-waarde) i.p.v. Invoer=4 (Rc-waarde)
+**Commit:** Ramen/deuren Invoer=3 (U-waarde transparant) i.p.v. Invoer=4 (Rc-waarde)
 **Wijzigingen:**
 - Bugfix: transparante constructies (ramen + deuren) kregen Invoer=4 (Rc-waarde) waardoor VABI U=0.00 en g=0.00 toonde
-  - Ramen (ConstructieType=2): Invoer=2, UGlas=Uw totaal
-  - Deuren (ConstructieType=3): Invoer=2, UKozijn=Ud totaal
+  - Ramen (ConstructieType=2): Invoer=3 (U-waarde transparant), UGlas=Uw totaal
+  - Deuren (ConstructieType=3): Invoer=3 (U-waarde transparant), UKozijn=Ud totaal
   - Opaque (muren/daken/vloeren): Invoer=4 ongewijzigd
-  - Herstel van vóór v47 wijziging die UGlas/UKozijn naar 0 zette
+  - Invoer=2 bestaat niet in VABI EPA (enum: 1,3,4,6); eerder als v56 beschreven met foutieve waarde Invoer=2
 
 ---
 

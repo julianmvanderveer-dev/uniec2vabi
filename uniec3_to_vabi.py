@@ -881,7 +881,7 @@ def _xml_ventilatiesysteem(parent: Element, index: int, primary: bool, vent_info
     _xml_text(vs, 'IsVerwarmingAangeslotenOpLbk', '0')
     _xml_text(vs, 'IsKoelingAangeslotenOpLbk', '0')
     _wtw = vent_info if (primary and vent_info and vent_info.get('wtw_rend')) else None
-    _xml_text(vs, 'TypeWtw', '3' if _wtw else '-1')
+    _xml_text(vs, 'TypeWtw', '0' if _wtw else '-1')  # 0=rekuperator (enum: 0=rekup, 1=rotatief)
     _xml_text(vs, 'Volumeregeling', '-1')
     _xml_text(vs, 'Bypass', _wtw['bypass'] if _wtw else '-1')
     _xml_text(vs, 'BypassPercentage', _wtw['bypass_pct'] if _wtw else '0')
@@ -892,7 +892,7 @@ def _xml_ventilatiesysteem(parent: Element, index: int, primary: bool, vent_info
     _xml_text(vs, 'LambdaKanaalBuitenaansluiting', _wtw['kanaal_lam'] if _wtw else '0.000')
     _xml_text(vs, 'LengteKanaalBuitenaansluiting', '-1')
     _xml_text(vs, 'WerkelijkeLengteKanaalBuitenaansluiting', '0.00')
-    _xml_text(vs, 'TypeVerklaringKvWtw', '2' if _wtw else '-1')
+    _xml_text(vs, 'TypeVerklaringKvWtw', '0' if _wtw else '-1')  # enum: -1=geen, 0=forfait
     _xml_text(vs, 'RendementKvWtw', _wtw['wtw_rend'] if _wtw else '0.000')
     _xml_text(vs, 'RendementKvWtwInclusiefDissipatie', '0')
     _xml_empty(vs, 'CodeKvWtw')
@@ -986,7 +986,7 @@ def _xml_verwarming_opwekker(parent: Element, index: int, verw_type: str = '-1',
     _xml_text(op, 'IsAdditioneelGeplaatstBijRenovatie', '0')
     # Eigen waarde alleen geldig voor ketels (1,2) en warmtepompen (8), niet voor stadsverwarming (10), WKK (3), etc.
     _kv = verw_info if (index == 0 and verw_info and verw_type in ('1', '2', '8')) else None
-    _xml_text(op, 'KwaliteitsverklaringWarmteopwekker', '2' if _kv else '0')
+    _xml_text(op, 'KwaliteitsverklaringWarmteopwekker', '1' if _kv else '0')  # enum: 0=forfait, 1=kwaliteitsverklaring
     _xml_text(op, 'KwaliteitsverklaringWarmteopwekkerId', _ZERO_GUID)
     _xml_text(op, 'KwaliteitsverklaringWarmtenet', '-1')
     _xml_text(op, 'TypeBron', '-1')
@@ -1004,8 +1004,8 @@ def _xml_verwarming_opwekker(parent: Element, index: int, verw_type: str = '-1',
     _xml_text(op, 'KwaliteitsverklaringLuchtdebietToestel', '0.0')
     _xml_text(op, 'KwaliteitsverklaringModulerendeWarmtepomp', '0')
     _xml_empty(op, 'KwaliteitsverklaringCode')
-    _xml_text(op, 'Hulpenergie', '1' if (_kv and _kv['hulp_aanwezig']) else '0')
-    _xml_text(op, 'HulpenergieTypeVerklaring', '2' if (_kv and _kv['hulp_aanwezig']) else '0')
+    _xml_text(op, 'Hulpenergie', '1' if (_kv and _kv['hulp_aanwezig']) else '0')  # 0=geen, 1=aanwezig
+    _xml_text(op, 'HulpenergieTypeVerklaring', '1' if (_kv and _kv['hulp_aanwezig']) else '-1')  # enum: -1=geen, 1=productspecifiek
     _xml_text(op, 'HulpenergieInvoermethode', '0')
     _xml_text(op, 'HulpenergieId', _ZERO_GUID)
     _xml_empty(op, 'HulpenergieMerk')
@@ -1489,9 +1489,9 @@ def _xml_constructie(parent: Element, c: dict, index: int):
     u_str  = _fmt(c.get('u'))
     rc_str = _fmt(c.get('rc'))
     g_str  = _fmt(c.get('g'))
-    # Opaque: Invoer=4 (Rc-waarde); transparant: Invoer=2 (U-waarde invoer)
+    # Opaque: Invoer=4 (Rc-waarde); transparant: Invoer=3 (U-waarde transparant)
     # Ramen: UGlas=Uw totaal; deuren: UKozijn=Ud totaal; opaque: Rc in <Rc>
-    _xml_text(co, 'Invoer', '4' if is_opaque else '2')
+    _xml_text(co, 'Invoer', '4' if is_opaque else '3')
     _xml_text(co, 'KwaliteitsverklaringInvoermethode', '0')
     _xml_text(co, 'OppervlaktePerConstructie', '0')
     _xml_text(co, 'Oppervlakte', '0.00')
@@ -1946,8 +1946,7 @@ def _xml_object(parent: Element, woning: dict, index: int,
     _xml_empty(reg_inv, 'InvoerendeEpAdviseur')
     _xml_empty(reg_inv, 'Certificaathouder')
     _xml_text(reg_inv, 'Gebruiker', '-1')
-    # Status=4 = niet geblokkeerd (Status=2 zou "registratiegegevens geblokkeerd" aanzetten)
-    _xml_text(reg_inv, 'Status', '4')
+    _xml_text(reg_inv, 'Status', '0')  # 0=concept; enum max=3, waarde 4 geeft Enum mismatch
     _xml_text(reg_inv, 'RepresentatieveWoningen', '0')
     # Lege representatieve invoerlijst — voorkomt EP-Online fetch bij ontbrekend veld
     orril = SubElement(reg_inv, 'ObjectRegistratieRepresentatiefInvoerList')
